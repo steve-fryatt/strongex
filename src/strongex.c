@@ -140,8 +140,10 @@ int main(int argc, char *argv[])
 
 static bool strongex_process_file(char *source_file, char *output_folder, bool verbose_output)
 {
-	FILE		*in, *out;
+	FILE		*in;
 	bool		success = true;
+	int		length = 0;
+	char		*buffer = NULL;
 
 	if (source_file == NULL || output_folder == NULL)
 		return false;
@@ -149,19 +151,33 @@ static bool strongex_process_file(char *source_file, char *output_folder, bool v
 	if (verbose_output)
 		printf("Extracting StrongHelp file '%s' to '%s'\n", source_file, output_folder);
 
-//	out = fopen(output_file, "w");
-//	if (out == NULL)
-//		return false;
+	in = fopen(source_file, "r");
+	if (in == NULL)
+		return false;
 
-//	while ((success == true) && ((in = library_get_file()) != NULL)) {
-//		success = tokenize_parse_file(in, out, &line_number, options);
-//		fclose(in);
-//	}
+	/* Get the size of the file. */
 
-//	fputc(0x0d, out);
-//	fputc(0xff, out);
+	fseek(in, 0, SEEK_END);
+	length = ftell(in);
+	fseek(in, 0, SEEK_SET);
 
-//	fclose(out);
+	buffer = malloc(length);
+
+	if (buffer != NULL) {
+		if (fread(buffer, sizeof(char), length, in) != length) {
+			free(buffer);
+			buffer = NULL;
+		}
+	}
+
+	fclose(in);
+
+	if (buffer == NULL) {
+		printf("Failed to read StrongHelp file into memory.\n");
+		return false;
+	}
+
+	printf("Read %d bytes of data.\n", length);
 
 //#if RISCOS
 //	osfile_set_type(output_file, osfile_TYPE_BASIC);
