@@ -64,7 +64,13 @@ static struct msg_data msg_messages[] = {
 	{MSG_ERROR,	"Failed to read file '%s' into memory"},
 	{MSG_ERROR,	"No file currently loaded"},
 	{MSG_ERROR,	"Attempt to use invalid offset of %d"},
-	{MSG_ERROR,	"Offset %d and block size %d bytes is outside file size of %d bytes"}
+	{MSG_ERROR,	"Attempt to use invalid size of %d"},
+	{MSG_ERROR,	"Offset %d and block size %d bytes is outside file size of %d bytes"},
+	{MSG_ERROR,	"Unable to locate directory entry"},
+	{MSG_ERROR,	"Unexpected file magic word 0x%x"},
+	{MSG_ERROR,	"Unexpected free magic word 0x%x"},
+	{MSG_ERROR,	"Unexpected object magic word 0x%x"},
+	{MSG_ERROR,	"Unable to find root directory entry"}
 };
 
 /**

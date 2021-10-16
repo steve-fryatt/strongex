@@ -30,12 +30,21 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 /* Local source headers. */
 
 #include "stronghelp.h"
 
 #include "msg.h"
+
+/* Magic Words used in file blocks. */
+
+#define STRONGHELP_FILE_WORD (0x504c4548)
+#define STRONGHELP_DIR_WORD (0x24524944)
+#define STRONGHELP_DATA_WORD (0x41544144)
+#define STRONGHELP_FREE_WORD (0x45455246)
 
 /**
  * A StrongHelp file root block.
@@ -59,11 +68,8 @@ struct stronghelp_file_dir_entry {
 	int32_t		size;
 	int32_t		flags;
 	int32_t		reserved;
-	char		*filename;
-			/* The filename follows this block,
-			 * zero terminated and padded
-			 * to a word boundary.
-			 */
+	char		filename[4];
+	/* The filename follows this block, zero terminated and padded to a word boundary. */
 };
 
 /**
@@ -109,6 +115,9 @@ static int32_t stronghelp_file_length = 0;
 
 /* Static Function Prototypes */
 
+static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry);
+static void stronghelp_process_directory_entries(int32_t offset, size_t length);
+
 static int32_t stronghelp_walk_free_space(int32_t offset);
 static void *stronghelp_get_block_address(int32_t offset, size_t min_size);
 
@@ -122,7 +131,8 @@ static void *stronghelp_get_block_address(int32_t offset, size_t min_size);
 
 void stronghelp_initialise_file(int8_t *file, size_t length)
 {
-	struct stronghelp_file_root *root;
+	struct stronghelp_file_root *header;
+	struct stronghelp_file_dir_entry *root;
 	int32_t free_space = 0;
 
 	stronghelp_file_root = file;
@@ -130,18 +140,123 @@ void stronghelp_initialise_file(int8_t *file, size_t length)
 
 	printf("Accepted file at 0x%x of %d bytes\n", file, length);
 
-	root = (struct stronghelp_file_root *) stronghelp_file_root + 0;
+	/* Validate the file header. */
 
-	printf("Header: 0x%x\n", root->help);
-	printf("Version: %d\n", root->version);
-	printf("Size: %d\n", root->size);
-	printf("Free Space offset: %d\n", root->free_offset);
+	header = stronghelp_get_block_address(0, sizeof(struct stronghelp_file_root));
 
-	free_space = stronghelp_walk_free_space(root->free_offset);
+	printf("Magic Word: 0x%x\n", header->help);
+	printf("Version: %d\n", header->version);
+	printf("Size: %d\n", header->size);
+	printf("Free Space offset: %d\n", header->free_offset);
+
+	if (header->help != STRONGHELP_FILE_WORD) {
+		msg_report(MSG_BAD_FILE_MAGIC, header->help);
+		return;
+	}	
+
+	/* Validate the free space list. */
+
+	free_space = stronghelp_walk_free_space(header->free_offset);
 
 	printf ("Total Free Space: %d bytes\n", free_space);
+
+	/* Validate the directory entries. */
+
+	root = stronghelp_get_block_address(16, sizeof(struct stronghelp_file_dir_entry));
+	if (root == NULL) {
+		msg_report(MSG_MISSING_ROOT);
+		return;
+	}
+
+	stronghelp_process_object(root);
 }
 
+/**
+ * Process an object.
+ *
+ * \param *entry	The directory entry for the object.
+ */
+
+static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry)
+{
+	struct stronghelp_file_data_block *data;
+	struct stronghelp_file_dir_block *dir;
+
+	if (entry == NULL)
+		return;
+
+	/* Start by assuming that the object is a file, since that has a smaller header. */
+
+	data = stronghelp_get_block_address(entry->object_offset, sizeof(struct stronghelp_file_data_block));
+	if (data == NULL)
+		return;
+
+	if (data->data == STRONGHELP_DATA_WORD) {
+		printf("File object... name=%s, size=%d.\n", entry->filename, data->size);
+	} else if (data->data == STRONGHELP_DIR_WORD) {
+		dir = (struct stronghelp_file_dir_block *) data;
+
+		printf("Directory object... name=%s, size=%d, used=%d\n", entry->filename, dir->size, dir->used);
+
+		stronghelp_process_directory_entries(entry->object_offset + sizeof(struct stronghelp_file_dir_block),
+				dir->used - sizeof(struct stronghelp_file_dir_block));
+
+		printf("...Directory done\n");
+	} else {
+		msg_report(MSG_BAD_OBJECT_MAGIC, data->data);
+	}
+}
+
+/**
+ * Process a block of directory entries, recursing down into any
+ * subdirectories.
+ *
+ * \param offset	The file offset of the first entry.
+ * \param length	The length of the data in the block.
+ */
+
+static void stronghelp_process_directory_entries(int32_t offset, size_t length)
+{
+	struct stronghelp_file_dir_entry *entry;
+	int32_t end;
+
+	/* Validate the offset and length. */
+
+	if (offset < 0) {
+		msg_report(MSG_BAD_OFFSET, offset);
+		return;
+	}
+
+	if (length < 0) {
+		msg_report(MSG_BAD_SIZE, length);
+		return;
+	}
+
+	/* Find the offset of the end of the block in the file. */
+
+	end = offset + length;
+
+	if (end >= stronghelp_file_length) {
+		msg_report(MSG_OFFSET_RANGE, offset, length, stronghelp_file_length);
+		return;
+	}
+
+	/* Process the entries. */
+
+	while (offset < end) {
+		entry = stronghelp_get_block_address(offset, sizeof(struct stronghelp_file_dir_entry));
+		if (entry == NULL) {
+			msg_report(MSG_BAD_DIR_ENTRY);
+			break;
+		}
+		
+		stronghelp_process_object(entry);
+
+		/* The struct is padded to 4 bytes, so there's no need to add 3 to this. */
+
+		offset += ((int) (sizeof(struct stronghelp_file_dir_entry) + strlen(entry->filename))) & ~3;
+	}
+}
 
 /**
  * Walk through the free space in the file, adding up the size of the
@@ -166,9 +281,14 @@ static int32_t stronghelp_walk_free_space(int32_t offset)
 	if (free == NULL)
 		return 0;
 
-	printf("Found free block: header 0x%x\n", free->free);
+	printf("Found free block: Magic Word 0x%x\n", free->free);
 	printf("Size: %d bytes\n", free->free_size);
 	printf("Next Offset: %d\n", free->next_offset);
+
+	if (free->free != STRONGHELP_FREE_WORD) {
+		msg_report(MSG_BAD_FREE_MAGIC, free->free);
+		return 0;
+	}
 
 	return stronghelp_walk_free_space(free->next_offset) + free->free_size;
 }
@@ -190,6 +310,11 @@ static void *stronghelp_get_block_address(int32_t offset, size_t min_size)
 
 	if (offset < 0) {
 		msg_report(MSG_BAD_OFFSET, offset);
+		return NULL;
+	}
+
+	if (min_size < 0) {
+		msg_report(MSG_BAD_SIZE, min_size);
 		return NULL;
 	}
 
