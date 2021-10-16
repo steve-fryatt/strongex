@@ -42,5 +42,16 @@
 
 int string_nocase_strcmp(char *s1, char *s2);
 
+/**
+ * Append one string on to the end of another.
+ *
+ * \param *buffer	The buffer into which to copy the string.
+ * \param *target	The string to be copied.
+ * \param length	The length of the buffer, including any
+ *			characters already there.
+ */
+
+void string_append(char *buffer, char *target, size_t length);
+
 #endif
 

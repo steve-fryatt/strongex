@@ -28,6 +28,7 @@
  */
 
 #include <ctype.h>
+#include <stddef.h>
 
 /* Local source headers. */
 
@@ -38,7 +39,9 @@
  * a value less than, equal to or greater than zero depending on
  * their relative values.
  *
- * This is an external interface, documented in string.h
+ * \param *s1		The first string to be compared.
+ * \param *s2		The second string to be compared.
+ * \return		The result of the comparison.
  */
 
 int string_nocase_strcmp(char *s1, char *s2)
@@ -51,3 +54,28 @@ int string_nocase_strcmp(char *s1, char *s2)
 	return (toupper(*s1) - toupper(*s2));
 }
 
+/**
+ * Append one string on to the end of another.
+ *
+ * \param *buffer	The buffer into which to copy the string.
+ * \param *target	The string to be copied.
+ * \param length	The length of the buffer, including any
+ *			characters already there.
+ */
+
+void string_append(char *buffer, char *source, size_t length)
+{
+	if (buffer == NULL || source == NULL || length <= 0)
+		return;
+
+	while (*buffer != '\0' && length-- > 0)
+		buffer++;
+
+	while (*source != '\0' && length-- > 0)
+		*(buffer++) = *(source++);
+
+	if (length == 0)
+		buffer--;
+
+	*buffer = '\0';
+}

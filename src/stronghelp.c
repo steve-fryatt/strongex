@@ -38,6 +38,7 @@
 #include "stronghelp.h"
 
 #include "msg.h"
+#include "string.h"
 
 /* Magic Words used in file blocks. */
 
@@ -115,8 +116,8 @@ static int32_t stronghelp_file_length = 0;
 
 /* Static Function Prototypes */
 
-static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry);
-static void stronghelp_process_directory_entries(int32_t offset, size_t length);
+static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry, char *parent_path);
+static void stronghelp_process_directory_entries(int32_t offset, size_t length, char *path);
 
 static int32_t stronghelp_walk_free_space(int32_t offset);
 static void *stronghelp_get_block_address(int32_t offset, size_t min_size);
@@ -168,19 +169,22 @@ void stronghelp_initialise_file(int8_t *file, size_t length)
 		return;
 	}
 
-	stronghelp_process_object(root);
+	stronghelp_process_object(root, NULL);
 }
 
 /**
  * Process an object.
  *
- * \param *entry	The directory entry for the object.
+ * \param *entry	Pointer to the directory entry for the object.
+ * \param *parent_path	Pointer to the path leading to the object, or NULL.
  */
 
-static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry)
+static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry, char *parent_path)
 {
 	struct stronghelp_file_data_block *data;
 	struct stronghelp_file_dir_block *dir;
+	size_t path_length = 0, path_written = 0;
+	char *our_path = NULL;
 
 	if (entry == NULL)
 		return;
@@ -191,15 +195,35 @@ static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry)
 	if (data == NULL)
 		return;
 
+	/* Build the full path for the object. */
+
+	path_length = strlen(entry->filename) + 1;
+
+	if (parent_path != NULL)
+		path_length += strlen(parent_path) + 1;
+
+	our_path = malloc(path_length);
+	if (our_path == NULL)
+		return;
+
+	*our_path = '\0';
+
+	if (parent_path != NULL) {
+		string_append(our_path, parent_path, path_length);
+		string_append(our_path, ".", path_length);
+	}
+
+	string_append(our_path, entry->filename, path_length);
+
 	if (data->data == STRONGHELP_DATA_WORD) {
-		printf("File object... name=%s, size=%d.\n", entry->filename, data->size);
+		printf("File object... name=%s, size=%d.\n", our_path, data->size);
 	} else if (data->data == STRONGHELP_DIR_WORD) {
 		dir = (struct stronghelp_file_dir_block *) data;
 
-		printf("Directory object... name=%s, size=%d, used=%d\n", entry->filename, dir->size, dir->used);
+		printf("Directory object... name=%s, size=%d, used=%d\n", our_path, dir->size, dir->used);
 
 		stronghelp_process_directory_entries(entry->object_offset + sizeof(struct stronghelp_file_dir_block),
-				dir->used - sizeof(struct stronghelp_file_dir_block));
+				dir->used - sizeof(struct stronghelp_file_dir_block), our_path);
 
 		printf("...Directory done\n");
 	} else {
@@ -213,9 +237,10 @@ static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry)
  *
  * \param offset	The file offset of the first entry.
  * \param length	The length of the data in the block.
+ * \param *path		Pointer to the path of the directory.
  */
 
-static void stronghelp_process_directory_entries(int32_t offset, size_t length)
+static void stronghelp_process_directory_entries(int32_t offset, size_t length, char *path)
 {
 	struct stronghelp_file_dir_entry *entry;
 	int32_t end;
@@ -249,8 +274,8 @@ static void stronghelp_process_directory_entries(int32_t offset, size_t length)
 			msg_report(MSG_BAD_DIR_ENTRY);
 			break;
 		}
-		
-		stronghelp_process_object(entry);
+
+		stronghelp_process_object(entry, path);
 
 		/* The struct is padded to 4 bytes, so there's no need to add 3 to this. */
 

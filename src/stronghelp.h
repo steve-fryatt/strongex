@@ -27,8 +27,8 @@
  * StrongHelp File Utilities, interface.
  */
 
-#ifndef STRONGHELP_STRING_H
-#define STRONGHELP_STRING_H
+#ifndef STRONGEX_STRONGHELP_H
+#define STRONGEX_STRONGHELP_H
 
 #include <stdlib.h>
 #include <stdint.h>
