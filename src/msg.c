@@ -61,6 +61,7 @@ struct msg_data {
 
 static struct msg_data msg_messages[] = {
 	{MSG_ERROR,	"Unknown error"},
+	{MSG_ERROR,	"Out of memory"},
 	{MSG_ERROR,	"Failed to read file '%s' into memory"},
 	{MSG_ERROR,	"No file currently loaded"},
 	{MSG_ERROR,	"Attempt to use invalid offset of %d"},
@@ -70,7 +71,9 @@ static struct msg_data msg_messages[] = {
 	{MSG_ERROR,	"Unexpected file magic word 0x%x"},
 	{MSG_ERROR,	"Unexpected free magic word 0x%x"},
 	{MSG_ERROR,	"Unexpected object magic word 0x%x"},
-	{MSG_ERROR,	"Unable to find root directory entry"}
+	{MSG_ERROR,	"Unable to find root directory entry"},
+	{MSG_ERROR,	"Attempt to create multiple root directories"},
+	{MSG_ERROR,	"No parent directory specified"}
 };
 
 /**

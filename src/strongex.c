@@ -40,6 +40,7 @@
 
 #include "args.h"
 #include "msg.h"
+#include "objectdb.h"
 #include "stronghelp.h"
 
 /* OSLib source headers. */
@@ -174,6 +175,8 @@ static bool strongex_process_file(char *source_file, char *output_folder, bool v
 		printf("Read %d bytes of data to location 0x%x.\n", length, buffer);
 
 	stronghelp_initialise_file(buffer, length);
+
+	objectdb_create_report();
 
 	free(buffer);
 

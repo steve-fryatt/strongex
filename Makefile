@@ -34,6 +34,7 @@ endif
 
 OBJS := args.o			\
 	msg.o			\
+	objectdb.o		\
 	string.o		\
 	strongex.o		\
 	stronghelp.o
