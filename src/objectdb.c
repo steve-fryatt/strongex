@@ -76,7 +76,7 @@ struct objectdb_dir *objectdb_root = NULL;
 /* Static Function Prototypes. */
 
 static void objectdb_directory_report(struct objectdb_dir *dir);
-static char* objectdb_get_dir_path(struct objectdb_dir *dir, size_t *length, char *separator);
+static char *objectdb_get_dir_path(struct objectdb_dir *dir, size_t *length, char *separator);
 
 
 /**
@@ -217,7 +217,7 @@ static void objectdb_directory_report(struct objectdb_dir *dir)
  * \return		Pointer to a buffer holding the assembled name.
  */
 
-static char* objectdb_get_dir_path(struct objectdb_dir *dir, size_t *length, char *separator)
+static char *objectdb_get_dir_path(struct objectdb_dir *dir, size_t *length, char *separator)
 {
 	char *name = NULL;
 
