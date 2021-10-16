@@ -38,7 +38,6 @@
 
 #include "msg.h"
 
-#define MSG_MAX_LOCATION_TEXT 256
 #define MSG_MAX_MESSAGE 256
 
 enum msg_level {
@@ -50,7 +49,6 @@ enum msg_level {
 struct msg_data {
 	enum msg_level	level;
 	char		*text;
-	bool		show_location;
 };
 
 
@@ -62,30 +60,18 @@ struct msg_data {
  */
 
 static struct msg_data msg_messages[] = {
-	{MSG_ERROR,	"Unknown error",				true	}
+	{MSG_ERROR,	"Unknown error"},
+	{MSG_ERROR,	"Failed to read file '%s' into memory"},
+	{MSG_ERROR,	"No file currently loaded"},
+	{MSG_ERROR,	"Attempt to use invalid offset of %d"},
+	{MSG_ERROR,	"Offset %d and block size %d bytes is outside file size of %d bytes"}
 };
-
-static char	msg_location[MSG_MAX_LOCATION_TEXT];
 
 /**
  * Set to true if an error is reported.
  */
 
 static bool	msg_error_reported = false;
-
-/**
- * Set the location for future messages, in the form of a file and line number
- * relating to the source files.
- *
- * \param line		The number of the current line.
- * \param *file		Pointer to the name of the current file.
- */
-
-void msg_set_location(unsigned line, char *file)
-{
-	snprintf(msg_location, MSG_MAX_LOCATION_TEXT, "at line %u of '%s'", line, (file != NULL) ? file : "");
-	msg_location[MSG_MAX_LOCATION_TEXT - 1] = '\0';
-}
 
 
 /**
@@ -125,10 +111,7 @@ void msg_report(enum msg_type type, ...)
 		break;
 	}
 
-	if (msg_messages[type].show_location)
-		fprintf(stderr, "%s: %s %s\n", level, message, msg_location);
-	else
-		fprintf(stderr, "%s: %s\n", level, message);
+	fprintf(stderr, "%s: %s\n", level, message);
 }
 
 
@@ -142,4 +125,3 @@ bool msg_errors(void)
 {
 	return msg_error_reported;
 }
-

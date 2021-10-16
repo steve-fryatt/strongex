@@ -42,19 +42,12 @@
 
 enum msg_type {
 	MSG_UNKNOWN_ERROR = 0,
+	MSG_LOAD_FAILED,
+	MSG_NO_FILE,
+	MSG_BAD_OFFSET,
+	MSG_OFFSET_RANGE,
 	MSG_MAX_MESSAGES
 };
-
-
-/**
- * Set the location for future messages, in the form of a file and line number
- * relating to the source files.
- *
- * \param line		The number of the current line.
- * \param *file		Pointer to the name of the current file.
- */
-
-void msg_set_location(unsigned line, char *file);
 
 
 /**

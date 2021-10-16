@@ -33,12 +33,14 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <stdio.h>
 
 /* Local source headers. */
 
 #include "args.h"
 #include "msg.h"
+#include "stronghelp.h"
 
 /* OSLib source headers. */
 
@@ -82,17 +84,10 @@ int main(int argc, char *argv[])
 			if (options->data != NULL && options->data->value.boolean == true)
 				verbose_output = true;
 		} else if (strcmp(options->name, "source") == 0) {
-			if (options->data != NULL) {
-				option_data = options->data;
-
-				while (option_data != NULL) {
-					if (option_data->value.string != NULL)
-						source_file = option_data->value.string;
-					option_data = option_data->next;
-				}
-			} else {
+			if (options->data != NULL && options->data->value.string != NULL)
+				source_file = options->data->value.string;
+			else
 				param_error = true;
-			}
 		} else if (strcmp(options->name, "out") == 0) {
 			if (options->data != NULL && options->data->value.string != NULL)
 				output_folder = options->data->value.string;
@@ -142,8 +137,8 @@ static bool strongex_process_file(char *source_file, char *output_folder, bool v
 {
 	FILE		*in;
 	bool		success = true;
-	int		length = 0;
-	char		*buffer = NULL;
+	size_t		length = 0;
+	int8_t		*buffer = NULL;
 
 	if (source_file == NULL || output_folder == NULL)
 		return false;
@@ -163,74 +158,24 @@ static bool strongex_process_file(char *source_file, char *output_folder, bool v
 
 	buffer = malloc(length);
 
-	if (buffer != NULL) {
-		if (fread(buffer, sizeof(char), length, in) != length) {
-			free(buffer);
-			buffer = NULL;
-		}
+	if ((buffer != NULL) && (fread(buffer, sizeof(char), length, in) != length)) {
+		free(buffer);
+		buffer = NULL;
 	}
 
 	fclose(in);
 
 	if (buffer == NULL) {
-		printf("Failed to read StrongHelp file into memory.\n");
+		msg_report(MSG_LOAD_FAILED, source_file);
 		return false;
 	}
 
-	printf("Read %d bytes of data.\n", length);
+	if (verbose_output)
+		printf("Read %d bytes of data to location 0x%x.\n", length, buffer);
 
-//#if RISCOS
-//	osfile_set_type(output_file, osfile_TYPE_BASIC);
-//#endif
+	stronghelp_initialise_file(buffer, length);
+
+	free(buffer);
 
 	return success;
 }
-
-#if 0
-/**
- * Tokenise the contents of a file, sending the results to the output.
- *
- * \param *in		The handle of the file to be tokenised.
- * \param *out		The handle of the file to write the output to.
- * \param *line_number	Pointer to a variable holding the current line number.
- * \param *options	Pointer to the tokenisation options.
- * \return		True on success; false if an error occurred.
- */
-
-static bool tokenize_parse_file(FILE *in, FILE *out, int *line_number, struct parse_options *options)
-{
-	char		line[MAX_INPUT_LINE_LENGTH], *tokenised, *file;
-	bool		assembler = false;
-	unsigned	input_line = 0;
-
-	if (in == NULL || out == NULL || line_number == NULL || options == NULL)
-		return false;
-
-	file = library_get_filename();
-	if (file == NULL)
-		file = "unknown file";
-
-	if (options->verbose_output)
-		printf("Processing source file '%s'\n", file);
-
-	while (tokenize_fgets(line, MAX_INPUT_LINE_LENGTH - 1, in) != NULL) {
-		msg_set_location(++input_line, file);
-
-		tokenised = parse_process_line(line, options, &assembler, line_number);
-		if (tokenised != NULL) {
-			/* The line tokeniser requests a line be deleted (ie. not
-			 * written to the output) by setting the leading \r to be
-			 * \0 instead (setting the line pointer to NULL signifies
-			 * an error).
-			 */
-
-			if (*tokenised != '\0')
-				fwrite(tokenised, sizeof(char), *((unsigned char *) tokenised + 3), out);
-		} else {
-			return false;
-		}
-	}
-
-	return true;
-}
-#endif

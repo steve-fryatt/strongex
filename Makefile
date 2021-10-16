@@ -35,6 +35,7 @@ endif
 OBJS := args.o			\
 	msg.o			\
 	string.o		\
-	strongex.o
+	strongex.o		\
+	stronghelp.o
 
 include $(SFTOOLS_MAKE)/Cross
