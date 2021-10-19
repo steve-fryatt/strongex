@@ -59,7 +59,7 @@
 /* Static Function Prototypes. */
 
 static void files_link_object(struct files_object_info **list, struct files_object_info *object);
-uint32_t files_get_filetype(char *name);
+static uint32_t files_get_filetype(char *name);
 
 /**
  * Read the contents of a directory, returning a linked list of objects.
@@ -202,7 +202,7 @@ static void files_link_object(struct files_object_info **list, struct files_obje
  * \return		The filetype identified from the name.
  */
 
-uint32_t files_get_filetype(char *name)
+static uint32_t files_get_filetype(char *name)
 {
 	size_t length = 0;
 	long int value;
