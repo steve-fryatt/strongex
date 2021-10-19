@@ -35,12 +35,6 @@
 #include <stdlib.h>
 
 /**
- * A special file type assigned to directories.
- */
-
-#define FILES_TYPE_DIRECTORY (0x1000)
-
-/**
  * The default file type applied when not otherwise specified.
  */
 

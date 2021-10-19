@@ -185,6 +185,7 @@ static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry, s
 	struct stronghelp_file_dir_block *dir;
 	size_t path_length = 0, path_written = 0;
 	struct objectdb_object *object = NULL;
+	uint32_t filetype;
 
 	if (entry == NULL)
 		return;
@@ -198,7 +199,8 @@ static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry, s
 	/* Create an Object DB entry for the directory. */
 
 	if (data->data == STRONGHELP_DATA_WORD) {
-		objectdb_add_stronghelp_file(parent, entry->filename);
+		filetype = (entry->load_address >> 8) & 0xfff;
+		objectdb_add_stronghelp_file(parent, entry->filename, entry->size - 8, filetype);
 		printf("File object... name=%s, size=%d.\n", entry->filename, data->size);
 	} else if (data->data == STRONGHELP_DIR_WORD) {
 		object = objectdb_add_stronghelp_directory(parent, entry->filename);

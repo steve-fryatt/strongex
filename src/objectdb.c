@@ -29,6 +29,7 @@
 
 #include <ctype.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
 /* Local source headers. */
@@ -40,12 +41,19 @@
 
 /* Data Structures */
 
+struct objectdb_details {
+	char 		*name;
+	size_t		size;
+	uint32_t	filetype;
+};
+
 /**
  * Details of an object within the manual.
  */
 
 struct objectdb_object {
-	char				*filename;
+	struct objectdb_details		stronghelp;
+	struct objectdb_details		disc;
 
 	struct objectdb_object		*directories;
 	struct objectdb_object		*files;
@@ -66,6 +74,7 @@ struct objectdb_object *objectdb_root = NULL;
 
 static void objectdb_directory_report(struct objectdb_object *dir);
 static char *objectdb_get_dir_path(struct objectdb_object *dir, size_t *length, char *separator);
+static void objectdb_link_stronghelp_object(struct objectdb_object **list, struct objectdb_object *object);
 
 
 /**
@@ -91,15 +100,20 @@ struct objectdb_object *objectdb_add_stronghelp_directory(struct objectdb_object
 		return NULL;
 	}
 
-	dir->filename = name;
+	dir->stronghelp.name = name;
+	dir->stronghelp.size = 0;
+	dir->stronghelp.filetype = OBJECTDB_TYPE_DIRECTORY;
+
+	dir->disc.name = NULL;
+	dir->disc.size = 0;
+	dir->disc.filetype = OBJECTDB_TYPE_UNKNOWN;
 
 	dir->directories = NULL;
 	dir->files = NULL;
 	dir->parent = parent;
 
 	if (parent != NULL) {
-		dir->next = parent->directories;
-		parent->directories = dir;
+		objectdb_link_stronghelp_object(&(parent->directories), dir);
 	} else {
 		dir->next = NULL;
 		objectdb_root = dir;
@@ -113,10 +127,12 @@ struct objectdb_object *objectdb_add_stronghelp_directory(struct objectdb_object
  *
  * \param *parent	Pointer to the parent directory.
  * \param *name		Pointer to the name of the file.
+ * \param size		The size of the file.
+ * \param filetype	The filetype of the file.
  * \return		Pointer to the new file instance, or NULL.
  */
 
-struct objectdb_object *objectdb_add_stronghelp_file(struct objectdb_object *parent, char *name)
+struct objectdb_object *objectdb_add_stronghelp_file(struct objectdb_object *parent, char *name, size_t size, uint32_t filetype)
 {
 	struct objectdb_object *file;
 
@@ -131,11 +147,19 @@ struct objectdb_object *objectdb_add_stronghelp_file(struct objectdb_object *par
 		return NULL;
 	}
 
-	file->filename = name;
+	file->stronghelp.name = name;
+	file->stronghelp.size = size;
+	file->stronghelp.filetype = filetype;
+
+	file->disc.name = NULL;
+	file->disc.size = 0;
+	file->disc.filetype = OBJECTDB_TYPE_UNKNOWN;
+
+	file->directories = NULL;
+	file->files = NULL;
 	file->parent = parent;
 
-	file->next = parent->files;
-	parent->files = file;
+	objectdb_link_stronghelp_object(&(parent->files), file);
 
 	return file;
 }
@@ -169,10 +193,10 @@ static void objectdb_directory_report(struct objectdb_object *dir)
 
 	next_file = dir->files;
 	while (next_file != NULL) {
-		length = strlen(next_file->filename) + 1;
+		length = strlen(next_file->stronghelp.name) + 1;
 		name = objectdb_get_dir_path(dir, &length, ".");
 		if (name != NULL) {
-			string_append(name, next_file->filename, length);
+			string_append(name, next_file->stronghelp.name, length);
 			printf("--> File: %s\n", name);
 			free(name);
 		} else {
@@ -210,7 +234,7 @@ static char *objectdb_get_dir_path(struct objectdb_object *dir, size_t *length, 
 {
 	char *name = NULL;
 
-	*length += strlen(dir->filename) + strlen(separator);
+	*length += strlen(dir->stronghelp.name) + strlen(separator);
 
 	if (dir->parent != NULL) {
 		name = objectdb_get_dir_path(dir->parent, length, separator);
@@ -219,8 +243,27 @@ static char *objectdb_get_dir_path(struct objectdb_object *dir, size_t *length, 
 		*name = '\0';
 	}
 
-	string_append(name, dir->filename, *length);
+	string_append(name, dir->stronghelp.name, *length);
 	string_append(name, separator, *length);
 
 	return name;
+}
+
+/**
+ * Link a new StrongHelp object into an object list, in the correct position alphabetically.
+ *
+ * \param **list	Pointer to the list head pointer location.
+ * \param *object	Pointer to the new object to link.
+ */
+
+static void objectdb_link_stronghelp_object(struct objectdb_object **list, struct objectdb_object *object)
+{
+	if (list == NULL || object == NULL)
+		return;
+
+	while (*list != NULL && strcmp((*list)->stronghelp.name, object->stronghelp.name) < 0)
+		list = &((*list)->next);
+
+	object->next = *list;
+	*list = object;
 }

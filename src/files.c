@@ -47,6 +47,7 @@
 #include "files.h"
 
 #include "msg.h"
+#include "objectdb.h"
 #include "string.h"
 
 /**
@@ -119,7 +120,7 @@ struct files_object_info *files_read_directory_contents(char *path)
 
 		/* Work out the filetype details. */
 
-		next->filetype = (S_ISDIR(stat_buffer.st_mode)) ? FILES_TYPE_DIRECTORY : files_get_filetype(next->name);
+		next->filetype = (S_ISDIR(stat_buffer.st_mode)) ? OBJECTDB_TYPE_DIRECTORY : files_get_filetype(next->name);
 
 		/* Store the file details. */
 

@@ -31,6 +31,18 @@
 #define STRONGEX_OBJECTDB_H
 
 /**
+ * A special file type assigned to directories.
+ */
+
+#define OBJECTDB_TYPE_DIRECTORY (0x1000)
+
+/**
+ * A special file type assigned to objects which don't exist.
+ */
+
+#define OBJECTDB_TYPE_UNKNOWN (0xffff)
+
+/**
  * An object instance reference.
  */
 
@@ -52,10 +64,12 @@ struct objectdb_object *objectdb_add_stronghelp_directory(struct objectdb_object
  *
  * \param *parent	Pointer to the parent directory.
  * \param *name		Pointer to the name of the file.
+ * \param size		The size of the file.
+ * \param filetype	The filetype of the file.
  * \return		Pointer to the new file instance, or NULL.
  */
 
-struct objectdb_object *objectdb_add_stronghelp_file(struct objectdb_object *parent, char *name);
+struct objectdb_object *objectdb_add_stronghelp_file(struct objectdb_object *parent, char *name, size_t size, uint32_t filetype);
 
 /**
  * Write a report of the objects held in the database.
