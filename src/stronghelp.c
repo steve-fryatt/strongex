@@ -116,8 +116,8 @@ static int32_t stronghelp_file_length = 0;
 
 /* Static Function Prototypes */
 
-static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry, struct objectdb_dir *parent);
-static void stronghelp_process_directory_entries(int32_t offset, size_t length, struct objectdb_dir *object);
+static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry, struct objectdb_object *parent);
+static void stronghelp_process_directory_entries(int32_t offset, size_t length, struct objectdb_object *object);
 
 static int32_t stronghelp_walk_free_space(int32_t offset);
 static void *stronghelp_get_block_address(int32_t offset, size_t min_size);
@@ -179,12 +179,12 @@ void stronghelp_initialise_file(int8_t *file, size_t length)
  * \param *parent	Pointer to the Object DB entry for the parent, or NULL.
  */
 
-static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry, struct objectdb_dir *parent)
+static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry, struct objectdb_object *parent)
 {
 	struct stronghelp_file_data_block *data;
 	struct stronghelp_file_dir_block *dir;
 	size_t path_length = 0, path_written = 0;
-	struct objectdb_dir *object = NULL;
+	struct objectdb_object *object = NULL;
 
 	if (entry == NULL)
 		return;
@@ -225,7 +225,7 @@ static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry, s
  * \param *object	Pointer to the Object DB entry for the directory.
  */
 
-static void stronghelp_process_directory_entries(int32_t offset, size_t length, struct objectdb_dir *object)
+static void stronghelp_process_directory_entries(int32_t offset, size_t length, struct objectdb_object *object)
 {
 	struct stronghelp_file_dir_entry *entry;
 	int32_t end;

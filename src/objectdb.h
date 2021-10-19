@@ -31,16 +31,10 @@
 #define STRONGEX_OBJECTDB_H
 
 /**
- * A directory instance reference.
+ * An object instance reference.
  */
 
-struct objectdb_dir;
-
-/**
- * A file instance reference.
- */
-
-struct objectdb_file;
+struct objectdb_object;
 
 
 /**
@@ -51,7 +45,7 @@ struct objectdb_file;
  * \return		Pointer to the new directory instance, or NULL.
  */
 
-struct objectdb_dir *objectdb_add_stronghelp_directory(struct objectdb_dir *parent, char *name);
+struct objectdb_object *objectdb_add_stronghelp_directory(struct objectdb_object *parent, char *name);
 
 /**
  * Add a file reference from the StrongHelp manual.
@@ -61,7 +55,7 @@ struct objectdb_dir *objectdb_add_stronghelp_directory(struct objectdb_dir *pare
  * \return		Pointer to the new file instance, or NULL.
  */
 
-struct objectdb_file *objectdb_add_stronghelp_file(struct objectdb_dir *parent, char *name);
+struct objectdb_object *objectdb_add_stronghelp_file(struct objectdb_object *parent, char *name);
 
 /**
  * Write a report of the objects held in the database.

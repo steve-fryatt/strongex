@@ -41,28 +41,17 @@
 /* Data Structures */
 
 /**
- * Details of a file within the manual.
+ * Details of an object within the manual.
  */
 
-struct objectdb_file {
+struct objectdb_object {
 	char				*filename;
 
-	struct objectdb_directory	*parent;
-	struct objectdb_file		*next;
-};
+	struct objectdb_object		*directories;
+	struct objectdb_object		*files;
 
-/**
- * Details of a directory within the manual.
- */
-
-struct objectdb_dir {
-	char				*filename;
-
-	struct objectdb_dir		*directories;
-	struct objectdb_file		*files;
-
-	struct objectdb_directory	*parent;
-	struct objectdb_dir		*next;
+	struct objectdb_object		*parent;
+	struct objectdb_object		*next;
 };
 
 /* Global Variables. */
@@ -71,12 +60,12 @@ struct objectdb_dir {
  * The root directory in the structure.
  */
 
-struct objectdb_dir *objectdb_root = NULL;
+struct objectdb_object *objectdb_root = NULL;
 
 /* Static Function Prototypes. */
 
-static void objectdb_directory_report(struct objectdb_dir *dir);
-static char *objectdb_get_dir_path(struct objectdb_dir *dir, size_t *length, char *separator);
+static void objectdb_directory_report(struct objectdb_object *dir);
+static char *objectdb_get_dir_path(struct objectdb_object *dir, size_t *length, char *separator);
 
 
 /**
@@ -87,16 +76,16 @@ static char *objectdb_get_dir_path(struct objectdb_dir *dir, size_t *length, cha
  * \return		Pointer to the new directory instance, or NULL.
  */
 
-struct objectdb_dir *objectdb_add_stronghelp_directory(struct objectdb_dir *parent, char *name)
+struct objectdb_object *objectdb_add_stronghelp_directory(struct objectdb_object *parent, char *name)
 {
-	struct objectdb_dir *dir;
+	struct objectdb_object *dir;
 
 	if (parent == NULL && objectdb_root != NULL) {
 		msg_report(MSG_TOO_MANY_ROOTS);
 		return NULL;
 	}
 
-	dir = malloc(sizeof(struct objectdb_dir));
+	dir = malloc(sizeof(struct objectdb_object));
 	if (dir == NULL) {
 		msg_report(MSG_NO_MEMORY);
 		return NULL;
@@ -127,16 +116,16 @@ struct objectdb_dir *objectdb_add_stronghelp_directory(struct objectdb_dir *pare
  * \return		Pointer to the new file instance, or NULL.
  */
 
-struct objectdb_file *objectdb_add_stronghelp_file(struct objectdb_dir *parent, char *name)
+struct objectdb_object *objectdb_add_stronghelp_file(struct objectdb_object *parent, char *name)
 {
-	struct objectdb_file *file;
+	struct objectdb_object *file;
 
 	if (parent == NULL) {
 		msg_report(MSG_NO_PARENT);
 		return NULL;
 	}
 
-	file = malloc(sizeof(struct objectdb_file));
+	file = malloc(sizeof(struct objectdb_object));
 	if (file == NULL) {
 		msg_report(MSG_NO_MEMORY);
 		return NULL;
@@ -168,10 +157,10 @@ void objectdb_create_report(void)
  * \param *dir		Pointer to the directory on which to report.
  */
 
-static void objectdb_directory_report(struct objectdb_dir *dir)
+static void objectdb_directory_report(struct objectdb_object *dir)
 {
-	struct objectdb_dir *next_dir;
-	struct objectdb_file *next_file;
+	struct objectdb_object *next_dir;
+	struct objectdb_object *next_file;
 	char *name;
 	size_t length;
 
@@ -217,7 +206,7 @@ static void objectdb_directory_report(struct objectdb_dir *dir)
  * \return		Pointer to a buffer holding the assembled name.
  */
 
-static char *objectdb_get_dir_path(struct objectdb_dir *dir, size_t *length, char *separator)
+static char *objectdb_get_dir_path(struct objectdb_object *dir, size_t *length, char *separator)
 {
 	char *name = NULL;
 
