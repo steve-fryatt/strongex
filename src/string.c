@@ -54,6 +54,30 @@ int string_nocase_strcmp(char *s1, char *s2)
 	return (toupper(*s1) - toupper(*s2));
 }
 
+/* Perform a strncpy(), sanity-checking the supplied pointer details and
+ * ensuring that the copy is zero-terminated even if the source string
+ * is longer than the supplied buffer.
+ *
+ * \param *dest		A buffer to hold the copied string.
+ * \param *src		The string to be copied.
+ * \param len		The maximum number of characters to copy.
+ * \return		A pointer to the copy of the string, or NULL
+ *			if the supplied pointers were invalid.
+ */
+
+char *string_copy(char *dest, char *src, size_t len)
+{
+	char *ret;
+
+	if (dest == NULL || src == NULL || len == 0)
+		return NULL;
+
+	ret = strncpy(dest, src, len);
+	dest[len - 1] = '\0';
+
+	return ret;
+}
+
 /**
  * Append one string on to the end of another.
  *

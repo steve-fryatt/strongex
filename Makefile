@@ -33,6 +33,8 @@ else
 endif
 
 OBJS := args.o			\
+	disc.o			\
+	files.o			\
 	msg.o			\
 	objectdb.o		\
 	string.o		\
