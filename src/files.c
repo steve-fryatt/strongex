@@ -138,7 +138,6 @@ struct files_object_info *files_read_directory_contents(char *path)
 	size_t length = 0;
 
 	do {
-		printf("Looping in...\n");
 		error = xosgbpb_dir_entries_info(path, osgbpb_list, 1, context, FILES_OSGBPB_SIZE, "*", &read, &context);
 		if (error != NULL) {
 			msg_report(MSG_DIR_READ_FAIL);
@@ -169,12 +168,8 @@ struct files_object_info *files_read_directory_contents(char *path)
 		next->size = osgbpb_list->info[0].size;
 
 		files_link_object(&list, next);
-
-		printf("Looping out...\n");
 	} while (context != -1);
 #endif
-
-	printf("Done!\n");
 
 	return list;
 }
@@ -188,8 +183,6 @@ struct files_object_info *files_read_directory_contents(char *path)
 
 static void files_link_object(struct files_object_info **list, struct files_object_info *object)
 {
-	struct files_object_info *next = NULL;
-
 	if (list == NULL || object == NULL)
 		return;
 
