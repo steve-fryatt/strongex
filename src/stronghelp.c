@@ -183,7 +183,6 @@ static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry, s
 {
 	struct stronghelp_file_data_block *data;
 	struct stronghelp_file_dir_block *dir;
-	size_t path_length = 0, path_written = 0;
 	struct objectdb_object *object = NULL;
 	uint32_t filetype;
 

@@ -31,6 +31,16 @@
 #define STRONGEX_OBJECTDB_H
 
 /**
+ * The types of path to return from path queries.
+ */
+
+enum objectdb_path_type {
+	OBJECTDB_PATH_TYPE_AGNOSTIC,		/**< The generic path to the file.	*/
+	OBJECTDB_PATH_TYPE_STRONGHELP,		/**< The StrongHelp path to the file.	*/
+	OBJECTDB_PATH_TYPE_DISC,		/**< The disc-based path to the file.	*/
+};
+
+/**
  * A special file type assigned to directories.
  */
 
@@ -72,10 +82,46 @@ struct objectdb_object *objectdb_add_stronghelp_directory(struct objectdb_object
 struct objectdb_object *objectdb_add_stronghelp_file(struct objectdb_object *parent, char *name, size_t size, uint32_t filetype);
 
 /**
+ * Add a directory reference from the disc manual.
+ *
+ * \param *parent	Pointer to the parent directory, or NULL for the root.
+ * \param *name		Pointer to the name of the directory.
+ * \param *real_name	Pointer to the real name of the directory.
+ * \return		Pointer to the resulting directory instance, or NULL.
+ */
+
+struct objectdb_object *objectdb_add_disc_directory(struct objectdb_object *parent, char *name, char *real_name);
+
+/**
+ * Add a file reference from the StrongHelp manual.
+ *
+ * \param *parent	Pointer to the parent directory.
+ * \param *name		Pointer to the name of the file.
+ * \param *real_name	Pointer to the real name of the file.
+ * \param size		The size of the file.
+ * \param filetype	The filetype of the file.
+ * \return		Pointer to the new file instance, or NULL.
+ */
+
+struct objectdb_object *objectdb_add_disc_file(struct objectdb_object *parent, char *name, char *real_name, size_t size, uint32_t filetype);
+
+/**
  * Write a report of the objects held in the database.
  */
 
 void objectdb_create_report(void);
 
-#endif
+/**
+ * Get a file path to an object.
+ *
+ * The path is allocated using malloc(), and must be freed with free() after use.
+ *
+ * \param *object 	Pointer to the object of interest.
+ * \param type		The type of path to return.
+ * \param *separator	The directory separator to use.
+ * \return		A pointer to the path, or NULL.
+ */
 
+char *objectdb_get_path(struct objectdb_object *object, enum objectdb_path_type type, char *separator);
+
+#endif

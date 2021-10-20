@@ -40,6 +40,13 @@
 
 #define FILES_TYPE_DEFAULT (0xffd)
 
+#ifdef LINUX
+#define FILES_PATH_SEPARATOR "/"
+#endif
+#ifdef RISCOS
+#define FILES_PATH_SEPARATOR "."
+#endif
+
 /**
  * Details of an object on disc.
  */
@@ -61,5 +68,23 @@ struct files_object_info {
  */
 
 struct files_object_info *files_read_directory_contents(char *path);
+
+/**
+ * Return object info details for a single directory on disc.
+ *
+ * \param *path		Pointer to the directory path.
+ * \return		Pointer to the information, or NULL.
+ */
+
+struct files_object_info *files_read_directory_info(char *path);
+
+/**
+ * Create a new directory.
+ *
+ * \param *path		Pointer to the required directory path.
+ * \return		True if successful; False on failure.
+ */
+
+bool files_make_directory(char *path);
 
 #endif

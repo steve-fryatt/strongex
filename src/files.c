@@ -165,7 +165,7 @@ struct files_object_info *files_read_directory_contents(char *path)
 
 		next->real_name = next->name;
 
-		next->filetype = (osgbpb_list->info[0].obj_type == osfile_IS_DIR) ? FILES_TYPE_DIRECTORY : ((osgbpb_list->info[0].load_addr >> 8) & 0xfffu);
+		next->filetype = (osgbpb_list->info[0].obj_type == osfile_IS_DIR) ? OBJECTDB_TYPE_DIRECTORY : ((osgbpb_list->info[0].load_addr >> 8) & 0xfffu);
 		next->size = osgbpb_list->info[0].size;
 
 		files_link_object(&list, next);
@@ -228,4 +228,86 @@ static uint32_t files_get_filetype(char *name)
 	name[length - 4] = '\0';
 
 	return (uint32_t) value;
+}
+
+/**
+ * Return object info details for a single directory on disc.
+ *
+ * \param *path		Pointer to the directory path.
+ * \return		Pointer to the information, or NULL.
+ */
+
+struct files_object_info *files_read_directory_info(char *path)
+{
+	struct files_object_info *info;
+	size_t length;
+
+#ifdef LINUX
+	struct stat stat_buffer;
+
+	if (stat(path, &stat_buffer) != 0) {
+		msg_report(MSG_DIR_READ_FAIL);
+		return NULL;
+	}
+
+	if (!S_ISDIR(stat_buffer.st_mode)) {
+		msg_report(MSG_NOT_DIR, path);
+		return NULL;
+	}
+#endif
+#ifdef RISCOS
+	fileswitch_object_type type;
+
+	if (xosfile_read_no_path(path, &type, NULL, NULL, NULL, NULL) != NULL) {
+		msg_report(MSG_DIR_READ_FAIL);
+		return NULL;
+	}
+
+	if (type != fileswitch_IS_DIR) {
+		msg_report(MSG_NOT_DIR, path);
+		return NULL;
+	}
+
+#endif
+
+	length = sizeof(struct files_object_info) + strlen(path) + 1;
+
+	info = malloc(length);
+	if (info == NULL) {
+		msg_report(MSG_NO_MEMORY);
+		return NULL;
+	}
+
+	/* Store the filenames. */
+
+	info->name = (char *) (info + 1);
+	string_copy(info->name, path, strlen(path) + 1);
+
+	info->real_name = info->name;
+	info->size = 0;
+	info->filetype = OBJECTDB_TYPE_DIRECTORY;
+	info->next = NULL;
+
+	return info;
+}
+
+/**
+ * Create a new directory.
+ *
+ * \param *path		Pointer to the required directory path.
+ * \return		True if successful; False on failure.
+ */
+
+bool files_make_directory(char *path)
+{
+#ifdef LINUX
+	if (mkdir(path, 0333) != 0)
+		return false;
+#endif
+#ifdef RISCOS
+	if (xosfile_create_dir(path, 0) != NULL)
+		return false;
+#endif
+
+	return true;
 }

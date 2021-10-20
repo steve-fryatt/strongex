@@ -73,8 +73,11 @@ static struct msg_data msg_messages[] = {
 	{MSG_ERROR,	"Unexpected object magic word 0x%x"},
 	{MSG_ERROR,	"Unable to find root directory entry"},
 	{MSG_ERROR,	"Attempt to create multiple root directories"},
+	{MSG_ERROR,	"No root directory defined"},
 	{MSG_ERROR,	"No parent directory specified"},
-	{MSG_ERROR,	"Unable to read from directory '%s'"}
+	{MSG_ERROR,	"Unable to read from directory '%s'"},
+	{MSG_ERROR,	"Object '%s' is not a directory"},
+	{MSG_ERROR,	"Unexpected filetype of 0x%x"}
 };
 
 /**
