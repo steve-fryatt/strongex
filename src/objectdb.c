@@ -97,6 +97,7 @@ static struct objectdb_object *objectdb_find_object(struct objectdb_object *list
 static void objectdb_check_directory_status(struct objectdb_object *dir);
 static bool objectdb_compare_files(struct objectdb_object *object);
 static void objectdb_output_directory_report(struct objectdb_object *dir, bool include_all);
+static void objectdb_update_directory(struct objectdb_object *dir);
 static char *objectdb_get_dir_path(struct objectdb_object *dir, size_t *length, enum objectdb_path_type type, char *separator);
 
 /**
@@ -525,6 +526,97 @@ static void objectdb_output_directory_report(struct objectdb_object *dir, bool i
 	object = dir->directories;
 	while (object != NULL) {
 		objectdb_output_directory_report(object, include_all);
+		object = object->next;
+	}
+}
+
+/**
+ * Update the objects in the database.
+ */
+
+void objectdb_output(void)
+{
+	printf("Running update...\n");
+	objectdb_update_directory(objectdb_root);
+}
+
+static char *objectdb_get_filename(char *name, uint32_t filetype)
+{
+	size_t length = 0;
+	char *buffer = NULL;
+
+	length = strlen(name) + 5;
+	buffer = malloc(length);
+	if (buffer == NULL)
+		return NULL;
+
+	snprintf(buffer, length, "%s,%3x", name, filetype);
+	buffer[length - 1] = '\0';
+
+	return buffer;
+}
+
+/**
+ * Update a given output directory and all of the folders below it.
+ *
+ * \param *dir		Pointer to the directory directory to be output.
+ */
+
+static void objectdb_update_directory(struct objectdb_object *dir)
+{
+	struct objectdb_object *object;
+	FILE *file = NULL;
+	char *path = NULL;
+
+	if (dir == NULL)
+		return;
+
+	switch (dir->status) {
+	case OBJECTDB_STATUS_ADDED:
+		if (dir->disc.name == NULL)
+			dir->disc.name = dir->name;
+
+		path = objectdb_get_path(dir, OBJECTDB_PATH_TYPE_DISC, FILES_PATH_SEPARATOR);
+		files_make_directory(path);
+		free(path);
+		break;
+	case OBJECTDB_STATUS_DELETED:
+		// Delete directory.
+		break;
+	default:
+		break;
+	}
+
+	object = dir->files;
+	while (object != NULL) {
+		switch (object->status) {
+		case OBJECTDB_STATUS_ADDED:
+			object->disc.name = objectdb_get_filename(object->stronghelp.name, object->stronghelp.filetype);
+
+			path = objectdb_get_path(object, OBJECTDB_PATH_TYPE_DISC, FILES_PATH_SEPARATOR);
+			file = fopen(path, "w");
+			if (file != NULL) {
+				fwrite(object->stronghelp.data, object->stronghelp.size, sizeof(char), file);
+				fclose(file);
+			}
+			free(path);
+			break;
+		case OBJECTDB_STATUS_DELETED:
+			break;
+		case OBJECTDB_STATUS_TYPE_CHANGED:
+		case OBJECTDB_STATUS_SIZE_CHANGED:
+		case OBJECTDB_STATUS_CONTENT_CHANGED:
+			break;
+		default:
+			break;
+		}
+
+		object = object->next;
+	}
+
+	object = dir->directories;
+	while (object != NULL) {
+		objectdb_update_directory(object);
 		object = object->next;
 	}
 }

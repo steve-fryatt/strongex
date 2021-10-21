@@ -37,9 +37,9 @@
  */
 
 enum objectdb_path_type {
-	OBJECTDB_PATH_TYPE_AGNOSTIC,		/**< The generic path to the file.	*/
-	OBJECTDB_PATH_TYPE_STRONGHELP,		/**< The StrongHelp path to the file.	*/
-	OBJECTDB_PATH_TYPE_DISC,		/**< The disc-based path to the file.	*/
+	OBJECTDB_PATH_TYPE_AGNOSTIC,		/**< The generic path to the file.		*/
+	OBJECTDB_PATH_TYPE_STRONGHELP,		/**< The StrongHelp path to the file.		*/
+	OBJECTDB_PATH_TYPE_DISC			/**< The disc-based path to the file.		*/
 };
 
 /**
@@ -121,6 +121,12 @@ void objectdb_check_status(void);
  */
 
 void objectdb_output_report(bool include_all);
+
+/**
+ * Update the objects in the database.
+ */
+
+void objectdb_output(void);
 
 /**
  * Get a file path to an object.

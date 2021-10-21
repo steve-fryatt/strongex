@@ -53,7 +53,7 @@
 #define MAX_INPUT_LINE_LENGTH 1024
 #define MAX_LOCATION_TEXT 256
 
-static bool strongex_process_file(char *source_file, char *output_folder, bool output_all, bool verbose_output);
+static bool strongex_process_file(char *source_file, char *output_folder, bool output_all, bool update_disc, bool verbose_output);
 
 int main(int argc, char *argv[])
 {
@@ -61,6 +61,7 @@ int main(int argc, char *argv[])
 	bool			output_help = false;
 	bool			verbose_output = false;
 	bool			output_all = false;
+	bool			update_disc = false;
 	char			*source_file = NULL;
 	char			*output_folder = NULL;
 	struct args_option	*options;
@@ -75,7 +76,7 @@ int main(int argc, char *argv[])
 	/* Decode the command line options. */
 
 	options = args_process_line(argc, argv,
-			"all/S,source/A,out/A,verbose/S,help/S");
+			"all/S,source/A,out/A,update/S,verbose/S,help/S");
 	if (options == NULL)
 		param_error = true;
 
@@ -99,6 +100,9 @@ int main(int argc, char *argv[])
 				output_folder = options->data->value.string;
 			else
 				param_error = true;
+		} else if (strcmp(options->name, "update") == 0) {
+			if (options->data != NULL && options->data->value.boolean == true)
+				update_disc = true;
 		}
 
 		options = options->next;
@@ -123,7 +127,7 @@ int main(int argc, char *argv[])
 
 	/* Run the tokenisation. */
 
-	if (!strongex_process_file(source_file, output_folder, output_all, verbose_output) || msg_errors())
+	if (!strongex_process_file(source_file, output_folder, output_all, update_disc, verbose_output) || msg_errors())
 		return EXIT_FAILURE;
 
 	return EXIT_SUCCESS;
@@ -137,11 +141,12 @@ int main(int argc, char *argv[])
  * \param *source_file		Pointer to the name of the file to read from.
  * \param *output_folder	Pointer to the name of the folder to write to.
  * \param output_all		Should the report show all files, or only changed ones.
+ * \param update_disc		Should the disc folder be updated with any changes.
  * \param *verbose_output	True if verbose output should be generated.
  * \return			True on success; false on failure.
  */
 
-static bool strongex_process_file(char *source_file, char *output_folder, bool output_all, bool verbose_output)
+static bool strongex_process_file(char *source_file, char *output_folder, bool output_all, bool update_disc, bool verbose_output)
 {
 	FILE		*in;
 	bool		success = true;
@@ -188,6 +193,9 @@ static bool strongex_process_file(char *source_file, char *output_folder, bool o
 	objectdb_check_status();
 
 	objectdb_output_report(output_all);
+
+	if (update_disc)
+		objectdb_output();
 
 	free(buffer);
 

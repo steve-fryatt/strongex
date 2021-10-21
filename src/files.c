@@ -245,12 +245,7 @@ struct files_object_info *files_read_directory_info(char *path)
 #ifdef LINUX
 	struct stat stat_buffer;
 
-	if (stat(path, &stat_buffer) != 0) {
-		msg_report(MSG_DIR_READ_FAIL);
-		return NULL;
-	}
-
-	if (!S_ISDIR(stat_buffer.st_mode)) {
+	if (stat(path, &stat_buffer) == 0 && !S_ISDIR(stat_buffer.st_mode)) {
 		msg_report(MSG_NOT_DIR, path);
 		return NULL;
 	}
@@ -263,7 +258,7 @@ struct files_object_info *files_read_directory_info(char *path)
 		return NULL;
 	}
 
-	if (type != fileswitch_IS_DIR) {
+	if (type != fileswitch_IS_DIR && type != fileswitch_NOT_FOUND) {
 		msg_report(MSG_NOT_DIR, path);
 		return NULL;
 	}
@@ -301,7 +296,7 @@ struct files_object_info *files_read_directory_info(char *path)
 bool files_make_directory(char *path)
 {
 #ifdef LINUX
-	if (mkdir(path, 0333) != 0)
+	if (mkdir(path, 0775) != 0)
 		return false;
 #endif
 #ifdef RISCOS
