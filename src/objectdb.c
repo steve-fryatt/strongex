@@ -94,8 +94,9 @@ struct objectdb_object *objectdb_root = NULL;
 
 static void objectdb_link_object(struct objectdb_object **list, struct objectdb_object *object);
 static struct objectdb_object *objectdb_find_object(struct objectdb_object *list, char *name);
-static void objectdb_directory_report(struct objectdb_object *dir);
+static void objectdb_check_directory_status(struct objectdb_object *dir);
 static bool objectdb_compare_files(struct objectdb_object *object);
+static void objectdb_output_directory_report(struct objectdb_object *dir, bool include_all);
 static char *objectdb_get_dir_path(struct objectdb_object *dir, size_t *length, enum objectdb_path_type type, char *separator);
 
 /**
@@ -345,67 +346,58 @@ static void objectdb_link_object(struct objectdb_object **list, struct objectdb_
 }
 
 /**
- * Write a report of the objects held in the database.
+ * Check the status of the objects held in the database.
  */
 
-void objectdb_create_report(void)
+void objectdb_check_status(void)
 {
-	printf("Creating report...\n");
-	objectdb_directory_report(objectdb_root);
+	objectdb_check_directory_status(objectdb_root);
 }
 
 /**
- * Write a report of a directory and all of the directories and files
- * contained within it.
+ * Check the statis of the objects held in a directory, and in all of the
+ * directories and files contained within it.
  *
- * \param *dir		Pointer to the directory on which to report.
+ * \param *dir		Pointer to the directory to be checked.
  */
 
-static void objectdb_directory_report(struct objectdb_object *dir)
+static void objectdb_check_directory_status(struct objectdb_object *dir)
 {
-	struct objectdb_object *next_dir;
-	struct objectdb_object *next_file;
+	struct objectdb_object *object;
 	char *name;
 
 	if (dir == NULL)
 		return;
 
-	next_file = dir->files;
-	while (next_file != NULL) {
-		if (next_file->stronghelp.name == NULL && next_file->disc.name != NULL)
-			next_file->status = OBJECTDB_STATUS_DELETED;
-		else if (next_file->stronghelp.name != NULL && next_file->disc.name == NULL)
-			next_file->status = OBJECTDB_STATUS_ADDED;
-		else if (next_file->stronghelp.filetype != next_file->disc.filetype)
-			next_file->status = OBJECTDB_STATUS_TYPE_CHANGED;
-		else if (next_file->stronghelp.size != next_file->disc.size)
-			next_file->status = OBJECTDB_STATUS_SIZE_CHANGED;
-		else if (!objectdb_compare_files(next_file))
-			next_file->status = OBJECTDB_STATUS_CONTENT_CHANGED;
+	if (dir->stronghelp.name == NULL && dir->disc.name != NULL)
+		dir->status = OBJECTDB_STATUS_DELETED;
+	else if (dir->stronghelp.name != NULL && dir->disc.name == NULL)
+		dir->status = OBJECTDB_STATUS_ADDED;
+	else
+		dir->status = OBJECTDB_STATUS_IDENTICAL;
+
+	object = dir->files;
+	while (object != NULL) {
+		if (object->stronghelp.name == NULL && object->disc.name != NULL)
+			object->status = OBJECTDB_STATUS_DELETED;
+		else if (object->stronghelp.name != NULL && object->disc.name == NULL)
+			object->status = OBJECTDB_STATUS_ADDED;
+		else if (object->stronghelp.filetype != object->disc.filetype)
+			object->status = OBJECTDB_STATUS_TYPE_CHANGED;
+		else if (object->stronghelp.size != object->disc.size)
+			object->status = OBJECTDB_STATUS_SIZE_CHANGED;
+		else if (!objectdb_compare_files(object))
+			object->status = OBJECTDB_STATUS_CONTENT_CHANGED;
 		else
-			next_file->status = OBJECTDB_STATUS_IDENTICAL;
+			object->status = OBJECTDB_STATUS_IDENTICAL;
 
-		name = objectdb_get_path(next_file, OBJECTDB_PATH_TYPE_AGNOSTIC, ".");
-		if (name != NULL) {
-			printf("--> File (status = %d): %s\n", next_file->status, name);
-			free(name);
-		} else {
-			msg_report(MSG_NO_MEMORY);
-		}
-
-		next_file = next_file->next;
+		object = object->next;
 	}
 
-	next_dir = dir->directories;
-	while (next_dir != NULL) {
-		if (next_dir->stronghelp.name == NULL && next_dir->disc.name != NULL)
-			next_dir->status = OBJECTDB_STATUS_DELETED;
-		else if (next_dir->stronghelp.name != NULL && next_dir->disc.name == NULL)
-			next_dir->status = OBJECTDB_STATUS_ADDED;
-		else
-			next_dir->status = OBJECTDB_STATUS_IDENTICAL;
-		objectdb_directory_report(next_dir);
-		next_dir = next_dir->next;
+	object = dir->directories;
+	while (object != NULL) {
+		objectdb_check_directory_status(object);
+		object = object->next;
 	}
 }
 
@@ -443,6 +435,98 @@ static bool objectdb_compare_files(struct objectdb_object *object)
 	fclose(file);
 
 	return identical;
+}
+
+/**
+ * Write a report of the object statuses in the database.
+ *
+ * \param include_all	Should identical objects be included.
+ */
+
+void objectdb_output_report(bool include_all)
+{
+	objectdb_output_directory_report(objectdb_root, include_all);
+}
+
+/**
+ * Write a report of the object statuses in a directory, and all subdirectories
+ * below that.
+ *
+ * \param *dir		Pointer to the directory on which to report.
+ * \param include_all	Should identical objects be included.
+ */
+
+static void objectdb_output_directory_report(struct objectdb_object *dir, bool include_all)
+{
+	struct objectdb_object *object;
+	char *name;
+
+	if (dir == NULL)
+		return;
+
+	name = objectdb_get_path(dir, OBJECTDB_PATH_TYPE_AGNOSTIC, ".");
+	if (name != NULL) {
+		switch (dir->status) {
+		case OBJECTDB_STATUS_ADDED:
+			printf("Directory %s Added\n", name);
+			break;
+		case OBJECTDB_STATUS_DELETED:
+			printf("Directory %s Deleted\n", name);
+			break;
+		case OBJECTDB_STATUS_IDENTICAL:
+			if (include_all)
+				printf("Directory %s Unchanged\n", name);
+			break;
+		default:
+			msg_report(MSG_BAD_STATUS, name);
+			break;
+		}
+
+		free(name);
+	} else {
+		msg_report(MSG_NO_MEMORY);
+	}
+
+	object = dir->files;
+	while (object != NULL) {
+		name = objectdb_get_path(object, OBJECTDB_PATH_TYPE_AGNOSTIC, ".");
+		if (name != NULL) {
+			switch (object->status) {
+			case OBJECTDB_STATUS_ADDED:
+				printf("File %s Added\n", name);
+				break;
+			case OBJECTDB_STATUS_DELETED:
+				printf("File %s Deleted\n", name);
+				break;
+			case OBJECTDB_STATUS_TYPE_CHANGED:
+				printf("File %s Changed Type\n", name);
+				break;
+			case OBJECTDB_STATUS_SIZE_CHANGED:
+			case OBJECTDB_STATUS_CONTENT_CHANGED:
+				printf("File %s Changed Content\n", name);
+				break;
+			case OBJECTDB_STATUS_IDENTICAL:
+				if (include_all)
+					printf("File %s Unchanged\n", name);
+				break;
+			default:
+				msg_report(MSG_BAD_STATUS, name);
+				break;
+			}
+
+			free(name);
+		} else {
+			msg_report(MSG_NO_MEMORY);
+		}
+
+		object = object->next;
+	}
+
+	object = dir->directories;
+	while (object != NULL) {
+		objectdb_output_directory_report(object, include_all);
+		object = object->next;
+	}
 }
 
 /**

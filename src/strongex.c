@@ -179,7 +179,9 @@ static bool strongex_process_file(char *source_file, char *output_folder, bool v
 
 	disc_initialise_folder(output_folder);
 
-	objectdb_create_report();
+	objectdb_check_status();
+
+	objectdb_output_report(false);
 
 	free(buffer);
 

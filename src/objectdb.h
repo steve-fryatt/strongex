@@ -30,6 +30,8 @@
 #ifndef STRONGEX_OBJECTDB_H
 #define STRONGEX_OBJECTDB_H
 
+#include <stdbool.h>
+
 /**
  * The types of path to return from path queries.
  */
@@ -107,10 +109,18 @@ struct objectdb_object *objectdb_add_disc_directory(struct objectdb_object *pare
 struct objectdb_object *objectdb_add_disc_file(struct objectdb_object *parent, char *name, char *real_name, size_t size, uint32_t filetype);
 
 /**
- * Write a report of the objects held in the database.
+ * Check the status of the objects held in the database.
  */
 
-void objectdb_create_report(void);
+void objectdb_check_status(void);
+
+/**
+ * Write a report of the object statuses in the database.
+ *
+ * \param include_all	Should identical objects be included.
+ */
+
+void objectdb_output_report(bool include_all);
 
 /**
  * Get a file path to an object.

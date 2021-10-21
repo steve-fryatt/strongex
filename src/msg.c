@@ -77,7 +77,8 @@ static struct msg_data msg_messages[] = {
 	{MSG_ERROR,	"No parent directory specified"},
 	{MSG_ERROR,	"Unable to read from directory '%s'"},
 	{MSG_ERROR,	"Object '%s' is not a directory"},
-	{MSG_ERROR,	"Unexpected filetype of 0x%x"}
+	{MSG_ERROR,	"Unexpected filetype of 0x%x"},
+	{MSG_ERROR,	"Unexpected status for '%s'"}
 };
 
 /**
