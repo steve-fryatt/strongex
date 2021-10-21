@@ -76,10 +76,11 @@ struct objectdb_object *objectdb_add_stronghelp_directory(struct objectdb_object
  * \param *name		Pointer to the name of the file.
  * \param size		The size of the file.
  * \param filetype	The filetype of the file.
+ * \param *data		Pointer to the file data.
  * \return		Pointer to the new file instance, or NULL.
  */
 
-struct objectdb_object *objectdb_add_stronghelp_file(struct objectdb_object *parent, char *name, size_t size, uint32_t filetype);
+struct objectdb_object *objectdb_add_stronghelp_file(struct objectdb_object *parent, char *name, size_t size, uint32_t filetype, char *data);
 
 /**
  * Add a directory reference from the disc manual.

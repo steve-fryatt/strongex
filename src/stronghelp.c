@@ -199,7 +199,7 @@ static void stronghelp_process_object(struct stronghelp_file_dir_entry *entry, s
 
 	if (data->data == STRONGHELP_DATA_WORD) {
 		filetype = (entry->load_address >> 8) & 0xfff;
-		objectdb_add_stronghelp_file(parent, entry->filename, entry->size - 8, filetype);
+		objectdb_add_stronghelp_file(parent, entry->filename, entry->size - 8, filetype, (char *) (data + 1));
 		printf("File object... name=%s, size=%d.\n", entry->filename, data->size);
 	} else if (data->data == STRONGHELP_DIR_WORD) {
 		object = objectdb_add_stronghelp_directory(parent, entry->filename);
