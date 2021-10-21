@@ -53,13 +53,14 @@
 #define MAX_INPUT_LINE_LENGTH 1024
 #define MAX_LOCATION_TEXT 256
 
-static bool strongex_process_file(char *source_file, char *output_folder, bool verbose_output);
+static bool strongex_process_file(char *source_file, char *output_folder, bool output_all, bool verbose_output);
 
 int main(int argc, char *argv[])
 {
 	bool			param_error = false;
 	bool			output_help = false;
 	bool			verbose_output = false;
+	bool			output_all = false;
 	char			*source_file = NULL;
 	char			*output_folder = NULL;
 	struct args_option	*options;
@@ -74,12 +75,15 @@ int main(int argc, char *argv[])
 	/* Decode the command line options. */
 
 	options = args_process_line(argc, argv,
-			"source/A,out/A,verbose/S,help/S");
+			"all/S,source/A,out/A,verbose/S,help/S");
 	if (options == NULL)
 		param_error = true;
 
 	while (options != NULL) {
-		if (strcmp(options->name, "help") == 0) {
+		if (strcmp(options->name, "all") == 0) {
+			if (options->data != NULL && options->data->value.boolean == true)
+				output_all = true;
+		} else if (strcmp(options->name, "help") == 0) {
 			if (options->data != NULL && options->data->value.boolean == true)
 				output_help = true;
 		} else if (strcmp(options->name, "verbose") == 0) {
@@ -102,15 +106,16 @@ int main(int argc, char *argv[])
 
 	if (param_error || output_help || verbose_output) {
 		printf("Strong Extract %s - %s\n", BUILD_VERSION, BUILD_DATE);
-		printf("Copyright Stephen Fryatt, 2014-%s\n", BUILD_DATE + 7);
+		printf("Copyright Stephen Fryatt, %s\n", BUILD_DATE + 7);
 	}
 
 	if (param_error || output_help) {
 		printf("StrongHelp Manual Extractor -- Usage:\n");
-		printf("strongex <infile> [<infile> ...] -out <outfile> [<options>]\n\n");
+		printf("strongex <infile> -out <outfolder> [<options>]\n\n");
 
+		printf(" -all                   Include unchanged files in the report.\n");
 		printf(" -help                  Produce this help information.\n");
-		printf(" -out <file>            Write tokenized basic to file <out>.\n");
+		printf(" -out <folder>          Write manual contents to <folder>.\n");
 		printf(" -verbose               Generate verbose process information.\n");
 
 		return (output_help) ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -118,7 +123,7 @@ int main(int argc, char *argv[])
 
 	/* Run the tokenisation. */
 
-	if (!strongex_process_file(source_file, output_folder, verbose_output) || msg_errors())
+	if (!strongex_process_file(source_file, output_folder, output_all, verbose_output) || msg_errors())
 		return EXIT_FAILURE;
 
 	return EXIT_SUCCESS;
@@ -131,11 +136,12 @@ int main(int argc, char *argv[])
  *
  * \param *source_file		Pointer to the name of the file to read from.
  * \param *output_folder	Pointer to the name of the folder to write to.
+ * \param output_all		Should the report show all files, or only changed ones.
  * \param *verbose_output	True if verbose output should be generated.
  * \return			True on success; false on failure.
  */
 
-static bool strongex_process_file(char *source_file, char *output_folder, bool verbose_output)
+static bool strongex_process_file(char *source_file, char *output_folder, bool output_all, bool verbose_output)
 {
 	FILE		*in;
 	bool		success = true;
@@ -181,7 +187,7 @@ static bool strongex_process_file(char *source_file, char *output_folder, bool v
 
 	objectdb_check_status();
 
-	objectdb_output_report(false);
+	objectdb_output_report(output_all);
 
 	free(buffer);
 
