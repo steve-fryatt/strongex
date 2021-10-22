@@ -27,6 +27,7 @@
  * Disc File Utilities, implementation.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -40,16 +41,17 @@
 
 /* Static Function Prototypes. */
 
-static void disc_process_object(struct files_object_info *entry, struct objectdb_object *parent);
-static void disc_process_directory_entries(struct objectdb_object *object);
+static bool disc_process_object(struct files_object_info *entry, struct objectdb_object *parent);
+static bool disc_process_directory_entries(struct objectdb_object *object);
 
 /* Initialise a folder on disc, and roughly validate its
  * contents.
  *
  * \param *file		Pointer to the folder path.
+ * \return		True if successful, false on failure.
  */
 
-void disc_initialise_folder(char *path)
+bool disc_initialise_folder(char *path)
 {
 	struct files_object_info *root;
 
@@ -57,9 +59,9 @@ void disc_initialise_folder(char *path)
 
 	root = files_read_directory_info(path);
 	if (root == NULL)
-		return;
+		return false;
 
-	disc_process_object(root, NULL);
+	return disc_process_object(root, NULL);
 }
 
 /**
@@ -67,31 +69,35 @@ void disc_initialise_folder(char *path)
  *
  * \param *entry	Pointer to the directory entry for the object.
  * \param *parent	Pointer to the Object DB entry for the parent, or NULL.
- */
+ * \return		True if successful, false on failure.
+*/
 
-static void disc_process_object(struct files_object_info *entry, struct objectdb_object *parent)
+static bool disc_process_object(struct files_object_info *entry, struct objectdb_object *parent)
 {
 	struct objectdb_object *object = NULL;
 
 	if (entry == NULL)
-		return;
+		return false;
 
 	/* Create an Object DB entry for the directory. */
 
 	if (entry->filetype == OBJECTDB_TYPE_DIRECTORY) {
 		object = objectdb_add_disc_directory(parent, entry->name, entry->real_name);
+		if (object == NULL)
+			return false;
 
-		printf("Directory object... name=%s, size=%d, real name=%s\n", entry->name, entry->size, entry->real_name);
-
-		disc_process_directory_entries(object);
-
-		printf("...Directory done %s\n", entry->name);
+		if (!disc_process_directory_entries(object))
+			return false;
 	} else if (entry->filetype != OBJECTDB_TYPE_UNKNOWN) {
-		objectdb_add_disc_file(parent, entry->name, entry->real_name, entry->size, entry->filetype);
-		printf("File object... name=%s, filetype=0x%x, size=%d, real name=%s\n", entry->name, entry->filetype, entry->size, entry->real_name);
+		object = objectdb_add_disc_file(parent, entry->name, entry->real_name, entry->size, entry->filetype);
+		if (object == NULL)
+			return false;
 	} else {
 		msg_report(MSG_BAD_FILETYPE, entry->filetype);
+		return false;
 	}
+
+	return true;
 }
 
 /**
@@ -99,9 +105,10 @@ static void disc_process_object(struct files_object_info *entry, struct objectdb
  * subdirectories.
  *
  * \param *object	Pointer to the Object DB entry for the directory.
+ * \return		True if successful, false on failure.
  */
 
-static void disc_process_directory_entries(struct objectdb_object *object)
+static bool disc_process_directory_entries(struct objectdb_object *object)
 {
 	struct files_object_info *entries;
 	char *path;
@@ -109,19 +116,26 @@ static void disc_process_directory_entries(struct objectdb_object *object)
 	/* Validate the offset and length. */
 
 	if (object == NULL)
-		return;
+		return false;
 
 	/* Read the directory on disc. */
 
 	path = objectdb_get_path(object, OBJECTDB_PATH_TYPE_DISC, FILES_PATH_SEPARATOR);
+	if (path == NULL)
+		return false;
 
 	entries = files_read_directory_contents(path);
+
+	free(path);
 
 	/* Process the entries. */
 
 	while (entries != NULL) {
-		disc_process_object(entries, object);
+		if (!disc_process_object(entries, object))
+			return false;
 
 		entries = entries->next;
 	}
+
+	return true;
 }

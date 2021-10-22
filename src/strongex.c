@@ -53,15 +53,25 @@
 #define MAX_INPUT_LINE_LENGTH 1024
 #define MAX_LOCATION_TEXT 256
 
-static bool strongex_process_file(char *source_file, char *output_folder, bool output_all, bool update_disc, bool verbose_output);
+/* Static Function Prototypes. */
+
+static bool strongex_process_file(char *source_file, char *output_folder, bool output_all, bool update_disc);
+
+/**
+ * The main program entry point.
+ *
+ * \param argc		The number of command line arguments.
+ * \param *argv[]	Pointer to the array of command line arguments.
+ * \return		The outcome of the operation.
+ */
 
 int main(int argc, char *argv[])
 {
 	bool			param_error = false;
 	bool			output_help = false;
-	bool			verbose_output = false;
 	bool			output_all = false;
 	bool			update_disc = false;
+	bool			verbose_output = false;
 	char			*source_file = NULL;
 	char			*output_folder = NULL;
 	struct args_option	*options;
@@ -107,6 +117,8 @@ int main(int argc, char *argv[])
 		options = options->next;
 	}
 
+	msg_set_verbose(verbose_output);
+
 	if (param_error || output_help || verbose_output) {
 		printf("Strong Extract %s - %s\n", BUILD_VERSION, BUILD_DATE);
 		printf("Copyright Stephen Fryatt, %s\n", BUILD_DATE + 7);
@@ -119,6 +131,7 @@ int main(int argc, char *argv[])
 		printf(" -all                   Include unchanged files in the report.\n");
 		printf(" -help                  Produce this help information.\n");
 		printf(" -out <folder>          Write manual contents to <folder>.\n");
+		printf(" -update                Update the output folder to match the manual.\n");
 		printf(" -verbose               Generate verbose process information.\n");
 
 		return (output_help) ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -126,7 +139,7 @@ int main(int argc, char *argv[])
 
 	/* Run the tokenisation. */
 
-	if (!strongex_process_file(source_file, output_folder, output_all, update_disc, verbose_output) || msg_errors())
+	if (!strongex_process_file(source_file, output_folder, output_all, update_disc) || msg_errors())
 		return EXIT_FAILURE;
 
 	return EXIT_SUCCESS;
@@ -141,32 +154,35 @@ int main(int argc, char *argv[])
  * \param *output_folder	Pointer to the name of the folder to write to.
  * \param output_all		Should the report show all files, or only changed ones.
  * \param update_disc		Should the disc folder be updated with any changes.
- * \param *verbose_output	True if verbose output should be generated.
  * \return			True on success; false on failure.
  */
 
-static bool strongex_process_file(char *source_file, char *output_folder, bool output_all, bool update_disc, bool verbose_output)
+static bool strongex_process_file(char *source_file, char *output_folder, bool output_all, bool update_disc)
 {
 	FILE		*in;
-	bool		success = true;
 	size_t		length = 0;
 	int8_t		*buffer = NULL;
 
 	if (source_file == NULL || output_folder == NULL)
 		return false;
 
-	if (verbose_output)
-		printf("Extracting StrongHelp file '%s' to '%s'\n", source_file, output_folder);
+	/* Open the file handle. */
+
+	msg_report(MSG_EXTRACTING, source_file, output_folder);
 
 	in = fopen(source_file, "r");
-	if (in == NULL)
+	if (in == NULL) {
+		msg_report(MSG_OPEN_FAILED, source_file);
 		return false;
+	}
 
 	/* Get the size of the file. */
 
 	fseek(in, 0, SEEK_END);
 	length = ftell(in);
 	fseek(in, 0, SEEK_SET);
+
+	/* Load the file into a memory buffer. */
 
 	buffer = malloc(length);
 
@@ -182,21 +198,38 @@ static bool strongex_process_file(char *source_file, char *output_folder, bool o
 		return false;
 	}
 
-	if (verbose_output)
-		printf("Read %d bytes of data to location 0x%x.\n", length, buffer);
+	msg_report(MSG_FILE_SIZE, length);
 
-	stronghelp_initialise_file(buffer, length);
+	/* Process the contents of the StrongHelp manual file. */
 
-	disc_initialise_folder(output_folder);
+	msg_report(MSG_READ_STRONGHELP);
+	if (!stronghelp_initialise_file(buffer, length))
+		return false;
 
-	objectdb_check_status();
+	/* Process the contents of the disc folder. */
 
-	objectdb_output_report(output_all);
+	msg_report(MSG_READ_DISC);
+	if (!disc_initialise_folder(output_folder))
+		return false;
 
-	if (update_disc)
-		objectdb_output();
+	/* Build a status report. */
 
-	free(buffer);
+	msg_report(MSG_COMPARING_DATA);
+	if (!objectdb_check_status())
+		return false;
 
-	return success;
+	/* Write the status report. */
+
+	if (!objectdb_output_report(output_all))
+		return false;
+
+	if (update_disc) {
+		msg_report(MSG_UPDATING_DISC);
+		if (!objectdb_update())
+			return false;
+	}
+
+	msg_report(MSG_COMPLETE);
+
+	return true;
 }

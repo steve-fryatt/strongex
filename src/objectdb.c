@@ -94,10 +94,10 @@ struct objectdb_object *objectdb_root = NULL;
 
 static void objectdb_link_object(struct objectdb_object **list, struct objectdb_object *object);
 static struct objectdb_object *objectdb_find_object(struct objectdb_object *list, char *name);
-static void objectdb_check_directory_status(struct objectdb_object *dir);
+static bool objectdb_check_directory_status(struct objectdb_object *dir);
 static bool objectdb_compare_files(struct objectdb_object *object);
-static void objectdb_output_directory_report(struct objectdb_object *dir, bool include_all);
-static void objectdb_update_directory(struct objectdb_object *dir);
+static bool objectdb_output_directory_report(struct objectdb_object *dir, bool include_all);
+static bool objectdb_update_directory(struct objectdb_object *dir);
 static char *objectdb_get_dir_path(struct objectdb_object *dir, size_t *length, enum objectdb_path_type type, char *separator);
 
 /**
@@ -219,8 +219,6 @@ struct objectdb_object *objectdb_add_disc_directory(struct objectdb_object *pare
 	dir = (parent == NULL) ? objectdb_root : objectdb_find_object(parent->directories, name);
 
 	if (dir == NULL) {
-		printf("No match for directory %s, creating new...\n", name);
-
 		dir = malloc(sizeof(struct objectdb_object));
 		if (dir == NULL) {
 			msg_report(MSG_NO_MEMORY);
@@ -241,8 +239,6 @@ struct objectdb_object *objectdb_add_disc_directory(struct objectdb_object *pare
 
 		if (parent != NULL)
 			objectdb_link_object(&(parent->directories), dir);
-	} else {
-		printf("Found match for directory %s... parent=0x%x, shname=%s\n", name, dir->parent, dir->stronghelp.name);
 	}
 
 	dir->disc.name = real_name;
@@ -276,8 +272,6 @@ struct objectdb_object *objectdb_add_disc_file(struct objectdb_object *parent, c
 	file = objectdb_find_object(parent->files, name);
 
 	if (file == NULL) {
-		printf("No match for file %s, creating new...\n", name);
-
 		file = malloc(sizeof(struct objectdb_object));
 		if (file == NULL) {
 			msg_report(MSG_NO_MEMORY);
@@ -297,8 +291,6 @@ struct objectdb_object *objectdb_add_disc_file(struct objectdb_object *parent, c
 		file->parent = parent;
 
 		objectdb_link_object(&(parent->files), file);
-	} else {
-		printf("Found match for file %s... parent=0x%x\n", name, file->parent);
 	}
 
 	file->disc.name = real_name;
@@ -348,11 +340,13 @@ static void objectdb_link_object(struct objectdb_object **list, struct objectdb_
 
 /**
  * Check the status of the objects held in the database.
- */
+ * 
+ * \return		True if successful, false on failure.
+*/
 
-void objectdb_check_status(void)
+bool objectdb_check_status(void)
 {
-	objectdb_check_directory_status(objectdb_root);
+	return objectdb_check_directory_status(objectdb_root);
 }
 
 /**
@@ -360,14 +354,15 @@ void objectdb_check_status(void)
  * directories and files contained within it.
  *
  * \param *dir		Pointer to the directory to be checked.
+ * \return		True if successful, false on failure.
  */
 
-static void objectdb_check_directory_status(struct objectdb_object *dir)
+static bool objectdb_check_directory_status(struct objectdb_object *dir)
 {
 	struct objectdb_object *object;
 
 	if (dir == NULL)
-		return;
+		return false;
 
 	if (dir->stronghelp.name == NULL && dir->disc.name != NULL)
 		dir->status = OBJECTDB_STATUS_DELETED;
@@ -396,9 +391,12 @@ static void objectdb_check_directory_status(struct objectdb_object *dir)
 
 	object = dir->directories;
 	while (object != NULL) {
-		objectdb_check_directory_status(object);
+		if (!objectdb_check_directory_status(object))
+			return false;
 		object = object->next;
 	}
+
+	return true;
 }
 
 /**
@@ -420,12 +418,19 @@ static bool objectdb_compare_files(struct objectdb_object *object)
 		return false;
 
 	filename = objectdb_get_path(object, OBJECTDB_PATH_TYPE_DISC, FILES_PATH_SEPARATOR);
-	if (filename == NULL)
+	if (filename == NULL) {
+		msg_report(MSG_NO_MEMORY);
 		return false;
+	}
 
 	file = fopen(filename, "rw");
-	if (file == NULL)
+	if (file == NULL) {
+		msg_report(MSG_OPEN_FAILED, filename);
+		free(filename);
 		return false;
+	}
+
+	free(filename);
 
 	while (i < object->stronghelp.size && !feof(file) && identical) {
 		if (object->stronghelp.data[i++] != (char) fgetc(file))
@@ -441,11 +446,12 @@ static bool objectdb_compare_files(struct objectdb_object *object)
  * Write a report of the object statuses in the database.
  *
  * \param include_all	Should identical objects be included.
+ * \return		True if successful, false on failure.
  */
 
-void objectdb_output_report(bool include_all)
+bool objectdb_output_report(bool include_all)
 {
-	objectdb_output_directory_report(objectdb_root, include_all);
+	return objectdb_output_directory_report(objectdb_root, include_all);
 }
 
 /**
@@ -454,28 +460,29 @@ void objectdb_output_report(bool include_all)
  *
  * \param *dir		Pointer to the directory on which to report.
  * \param include_all	Should identical objects be included.
+ * \return		True if successful, false on failure.
  */
 
-static void objectdb_output_directory_report(struct objectdb_object *dir, bool include_all)
+static bool objectdb_output_directory_report(struct objectdb_object *dir, bool include_all)
 {
 	struct objectdb_object *object;
 	char *name;
 
 	if (dir == NULL)
-		return;
+		return false;
 
 	name = objectdb_get_path(dir, OBJECTDB_PATH_TYPE_AGNOSTIC, ".");
 	if (name != NULL) {
 		switch (dir->status) {
 		case OBJECTDB_STATUS_ADDED:
-			printf("Directory %s Added\n", name);
+			msg_report(MSG_REPORT_DIR_ADDED, name);
 			break;
 		case OBJECTDB_STATUS_DELETED:
-			printf("Directory %s Deleted\n", name);
+			msg_report(MSG_REPORT_DIR_DELETED, name);
 			break;
 		case OBJECTDB_STATUS_IDENTICAL:
 			if (include_all)
-				printf("Directory %s Unchanged\n", name);
+				msg_report(MSG_REPORT_DIR_UNCHANGED, name);
 			break;
 		default:
 			msg_report(MSG_BAD_STATUS, name);
@@ -485,6 +492,7 @@ static void objectdb_output_directory_report(struct objectdb_object *dir, bool i
 		free(name);
 	} else {
 		msg_report(MSG_NO_MEMORY);
+		return false;
 	}
 
 	object = dir->files;
@@ -493,21 +501,21 @@ static void objectdb_output_directory_report(struct objectdb_object *dir, bool i
 		if (name != NULL) {
 			switch (object->status) {
 			case OBJECTDB_STATUS_ADDED:
-				printf("File %s Added\n", name);
+				msg_report(MSG_REPORT_FILE_ADDED, name);
 				break;
 			case OBJECTDB_STATUS_DELETED:
-				printf("File %s Deleted\n", name);
+				msg_report(MSG_REPORT_FILE_DELETED, name);
 				break;
 			case OBJECTDB_STATUS_TYPE_CHANGED:
-				printf("File %s Changed Type\n", name);
+				msg_report(MSG_REPORT_FILE_TYPE, object->disc.filetype, object->stronghelp.filetype, name);
 				break;
 			case OBJECTDB_STATUS_SIZE_CHANGED:
 			case OBJECTDB_STATUS_CONTENT_CHANGED:
-				printf("File %s Changed Content\n", name);
+				msg_report(MSG_REPORT_FILE_CONTENTS, object->disc.size, object->stronghelp.size, name);
 				break;
 			case OBJECTDB_STATUS_IDENTICAL:
 				if (include_all)
-					printf("File %s Unchanged\n", name);
+					msg_report(MSG_REPORT_FILE_UNCHANGED, name);
 				break;
 			default:
 				msg_report(MSG_BAD_STATUS, name);
@@ -517,6 +525,7 @@ static void objectdb_output_directory_report(struct objectdb_object *dir, bool i
 			free(name);
 		} else {
 			msg_report(MSG_NO_MEMORY);
+			return false;
 		}
 
 		object = object->next;
@@ -524,41 +533,54 @@ static void objectdb_output_directory_report(struct objectdb_object *dir, bool i
 
 	object = dir->directories;
 	while (object != NULL) {
-		objectdb_output_directory_report(object, include_all);
+		if (!objectdb_output_directory_report(object, include_all))
+			return false;
 		object = object->next;
 	}
+
+	return true;
 }
 
 /**
  * Update the objects in the database.
+ * 
+ * \return		True if successful, false on failure.
  */
 
-void objectdb_output(void)
+bool objectdb_update(void)
 {
-	printf("Running update...\n");
-	objectdb_update_directory(objectdb_root);
+	return objectdb_update_directory(objectdb_root);
 }
 
 /**
  * Update a given output directory and all of the folders below it.
  *
  * \param *dir		Pointer to the directory directory to be output.
+ * \return		True if successful, false on failure.
  */
 
-static void objectdb_update_directory(struct objectdb_object *dir)
+static bool objectdb_update_directory(struct objectdb_object *dir)
 {
 	struct objectdb_object *object;
 	char *path = NULL;
 
 	if (dir == NULL)
-		return;
+		return false;
 
 	if (dir->status == OBJECTDB_STATUS_ADDED) {
 		if (dir->disc.name == NULL)
 			dir->disc.name = dir->name;
 
 		path = objectdb_get_path(dir, OBJECTDB_PATH_TYPE_DISC, FILES_PATH_SEPARATOR);
-		files_make_directory(path);
+		if (path == NULL) {
+			msg_report(MSG_NO_MEMORY);
+			return false;
+		}
+
+		msg_report(MSG_CRTEATE_DIR, path);
+		if (!files_make_directory(path))
+			return false;
+
 		free(path);
 	}
 
@@ -569,27 +591,65 @@ static void objectdb_update_directory(struct objectdb_object *dir)
 			object->disc.name = files_make_filename(object->stronghelp.name, object->stronghelp.filetype);
 
 			path = objectdb_get_path(object, OBJECTDB_PATH_TYPE_DISC, FILES_PATH_SEPARATOR);
-			files_write_file(path, object->stronghelp.data, object->stronghelp.size);
-			files_set_filetype(path, object->stronghelp.filetype);
+			if (path == NULL) {
+				msg_report(MSG_NO_MEMORY);
+				return false;
+			}
+
+			msg_report(MSG_WRITE_FILE, path);
+
+			if (!files_write_file(path, object->stronghelp.data, object->stronghelp.size))
+				return false;
+			if (!files_set_filetype(path, object->stronghelp.filetype))
+				return false;
+
 			free(path);
 			break;
 		case OBJECTDB_STATUS_DELETED:
 			path = objectdb_get_path(object, OBJECTDB_PATH_TYPE_DISC, FILES_PATH_SEPARATOR);
-			files_delete_file(path);
+			if (path == NULL) {
+				msg_report(MSG_NO_MEMORY);
+				return false;
+			}
+
+			msg_report(MSG_DELETE_FILE, path);
+
+			if (!files_delete_file(path))
+				return false;
+
 			free(path);
 			break;
 		case OBJECTDB_STATUS_TYPE_CHANGED:
 		case OBJECTDB_STATUS_SIZE_CHANGED:
 		case OBJECTDB_STATUS_CONTENT_CHANGED:
 			path = objectdb_get_path(object, OBJECTDB_PATH_TYPE_DISC, FILES_PATH_SEPARATOR);
-			files_delete_file(path);
+			if (path == NULL) {
+				msg_report(MSG_NO_MEMORY);
+				return false;
+			}
+
+			msg_report(MSG_DELETE_FILE, path);
+
+			if (!files_delete_file(path))
+				return false;
+
 			free(path);
 
 			object->disc.name = files_make_filename(object->stronghelp.name, object->stronghelp.filetype);
 
 			path = objectdb_get_path(object, OBJECTDB_PATH_TYPE_DISC, FILES_PATH_SEPARATOR);
-			files_write_file(path, object->stronghelp.data, object->stronghelp.size);
-			files_set_filetype(path, object->stronghelp.filetype);
+			if (path == NULL) {
+				msg_report(MSG_NO_MEMORY);
+				return false;
+			}
+
+			msg_report(MSG_WRITE_FILE, path);
+
+			if (!files_write_file(path, object->stronghelp.data, object->stronghelp.size))
+				return false;
+			if (!files_set_filetype(path, object->stronghelp.filetype))
+				return false;
+
 			free(path);
 			break;
 		default:
@@ -601,15 +661,26 @@ static void objectdb_update_directory(struct objectdb_object *dir)
 
 	object = dir->directories;
 	while (object != NULL) {
-		objectdb_update_directory(object);
+		if (!objectdb_update_directory(object))
+			return false;
 		object = object->next;
 	}
 
 	if (dir->status == OBJECTDB_STATUS_DELETED) {
 		path = objectdb_get_path(dir, OBJECTDB_PATH_TYPE_DISC, FILES_PATH_SEPARATOR);
-		files_delete_directory(path);
+		if (path == NULL) {
+			msg_report(MSG_NO_MEMORY);
+			return false;
+		}
+
+		msg_report(MSG_DELETE_DIR, path);
+		if (!files_delete_directory(path))
+			return false;
+
 		free(path);
 	}
+
+	return true;
 }
 
 /**
@@ -668,9 +739,17 @@ static char *objectdb_get_dir_path(struct objectdb_object *dir, size_t *length, 
 
 	if (dir->parent != NULL) {
 		name = objectdb_get_dir_path(dir->parent, length, type, separator);
+		if (name == NULL)
+			return NULL;
+
 		string_append(name, separator, *length);
 	} else {
 		name = malloc(*length);
+		if (name == NULL) {
+			msg_report(MSG_NO_MEMORY);
+			return NULL;
+		}
+
 		*name = '\0';
 	}
 

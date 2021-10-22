@@ -30,13 +30,16 @@
 #ifndef STRONGEX_DISC_H
 #define STRONGEX_DISC_H
 
+#include <stdbool.h>
+
 /* Initialise a folder on disc, and roughly validate its
  * contents.
  *
  * \param *file		Pointer to the folder path.
+ * \return		True if successful, false on failure.
  */
 
-void disc_initialise_folder(char *path);
+bool disc_initialise_folder(char *path);
 
 #endif
 

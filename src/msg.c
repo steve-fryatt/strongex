@@ -1,4 +1,4 @@
-/* Copyright 2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2014-2021, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Strong Extract:
  *
@@ -41,6 +41,7 @@
 #define MSG_MAX_MESSAGE 256
 
 enum msg_level {
+	MSG_VERBOSE,
 	MSG_INFO,
 	MSG_WARNING,
 	MSG_ERROR
@@ -62,6 +63,7 @@ struct msg_data {
 static struct msg_data msg_messages[] = {
 	{MSG_ERROR,	"Unknown error"},
 	{MSG_ERROR,	"Out of memory"},
+	{MSG_ERROR,	"Failed to open file '%s'"},
 	{MSG_ERROR,	"Failed to read file '%s' into memory"},
 	{MSG_ERROR,	"No file currently loaded"},
 	{MSG_ERROR,	"Attempt to use invalid offset of %d"},
@@ -78,15 +80,58 @@ static struct msg_data msg_messages[] = {
 	{MSG_ERROR,	"Unable to read from directory '%s'"},
 	{MSG_ERROR,	"Object '%s' is not a directory"},
 	{MSG_ERROR,	"Unexpected filetype of 0x%x"},
-	{MSG_ERROR,	"Unexpected status for '%s'"}
+	{MSG_ERROR,	"Unexpected status for '%s'"},
+	{MSG_INFO,	"Extracting StrongHelp file '%s' to '%s'"},
+	{MSG_VERBOSE,	"The file is %d bytes long"},
+	{MSG_INFO,	"Processing the contents of the StrongHelp manual..."},
+	{MSG_INFO,	"Processing the contents of the disc folder..."},
+	{MSG_INFO,	"Comparing the two versions..."},
+	{MSG_INFO,	"Updating the disc folder contents..."},
+	{MSG_INFO,	"All done!"},
+	{MSG_VERBOSE,	"Magic Word: 0x%x"},
+	{MSG_VERBOSE,	"StrongHelp Version: %d"},
+	{MSG_VERBOSE,	"Header Size: %d bytes"},
+	{MSG_VERBOSE,	"Free Space offset: %d"},
+	{MSG_VERBOSE,	"Total Free Space: %d bytes"},
+	{MSG_VERBOSE,	"Found free block: Magic Word 0x%x"},
+	{MSG_VERBOSE,	"Size: %d bytes"},
+	{MSG_VERBOSE,	"Next Offset: %d"},
+	{MSG_INFO,	"Directory Added: %s"},
+	{MSG_INFO,	"Directory Deleted: %s"},
+	{MSG_INFO,	"Directory Unchanged: %s"},
+	{MSG_INFO,	"File Added: %s"},
+	{MSG_INFO,	"File Deleted: %s"},
+	{MSG_INFO,	"File Unchanged: %s"},
+	{MSG_INFO,	"File Type Changed from 0x%3x to 0x%3x: %s"},
+	{MSG_INFO,	"File Contents Changed from %d to %d bytes: %s"},
+	{MSG_VERBOSE,	"Creating directory %s"},
+	{MSG_VERBOSE,	"Deleting directory %s"},
+	{MSG_VERBOSE,	"Writing file %s"},
+	{MSG_VERBOSE,	"Deleting file %s"}
 };
 
 /**
  * Set to true if an error is reported.
  */
 
-static bool	msg_error_reported = false;
+static bool msg_error_reported = false;
 
+/**
+ * Set to true if we are reporting verbose messages.
+ */
+
+static bool msg_verbose = false;
+
+/**
+ * Set the verbosity of reporting.
+ *
+ * \param verbose	True if verbose reporting should be enabled.
+ */
+
+void msg_set_verbose(bool verbose)
+{
+	msg_verbose = verbose;
+}
 
 /**
  * Generate a message to the user, based on a range of standard message tokens
@@ -103,6 +148,9 @@ void msg_report(enum msg_type type, ...)
 	if (type < 0 || type >= MSG_MAX_MESSAGES)
 		return;
 
+	if (msg_messages[type].level == MSG_VERBOSE && !msg_verbose)
+		return;
+
 	va_start(ap, type);
 	vsnprintf(message, MSG_MAX_MESSAGE, msg_messages[type].text, ap);
 	va_end(ap);
@@ -110,6 +158,7 @@ void msg_report(enum msg_type type, ...)
 	message[MSG_MAX_MESSAGE - 1] = '\0';
 
 	switch (msg_messages[type].level) {
+	case MSG_VERBOSE:
 	case MSG_INFO:
 		level = "Info";
 		break;

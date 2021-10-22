@@ -396,17 +396,18 @@ bool files_delete_directory(char *path)
 bool files_write_file(char *path, char *data, size_t length)
 {
 	FILE *file;
-	size_t to_write = length, written;
+	size_t to_write = length;
+	size_t written;
 
 	file = fopen(path, "w");
 	if (file == NULL)
 		return false;
 
 	while (to_write > 0) {
-		written = fwrite(data, length, sizeof(char), file);
-		
+		written = fwrite(data, sizeof(char), length, file);
 		if (written == 0)
 			break;
+
 		to_write -= written;
 	}
 

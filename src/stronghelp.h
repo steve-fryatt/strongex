@@ -30,6 +30,7 @@
 #ifndef STRONGEX_STRONGHELP_H
 #define STRONGEX_STRONGHELP_H
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -38,8 +39,9 @@
  *
  * \param *file		Pointer to the file in memory.
  * \param length	The length of the file.
+ * \return		True if successful, false on failure.
  */
 
-void stronghelp_initialise_file(int8_t *file, size_t length);
+bool stronghelp_initialise_file(int8_t *file, size_t length);
 
 #endif

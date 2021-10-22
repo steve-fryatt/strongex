@@ -1,4 +1,4 @@
-/* Copyright 2014, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2014-2021, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of Strong Extract:
  *
@@ -43,6 +43,7 @@
 enum msg_type {
 	MSG_UNKNOWN_ERROR = 0,
 	MSG_NO_MEMORY,
+	MSG_OPEN_FAILED,
 	MSG_LOAD_FAILED,
 	MSG_NO_FILE,
 	MSG_BAD_OFFSET,
@@ -60,9 +61,44 @@ enum msg_type {
 	MSG_NOT_DIR,
 	MSG_BAD_FILETYPE,
 	MSG_BAD_STATUS,
+	MSG_EXTRACTING,
+	MSG_FILE_SIZE,
+	MSG_READ_STRONGHELP,
+	MSG_READ_DISC,
+	MSG_COMPARING_DATA,
+	MSG_UPDATING_DISC,
+	MSG_COMPLETE,
+	MSG_STRONG_HEADER_MAGIC_WORD,
+	MSG_STRONG_VERSION,
+	MSG_STRONG_HEADER_SIZE,
+	MSG_STRONG_FREE_SPACE_OFFSET,
+	MSG_STRONG_FREE_TOTAL_SIZE,
+	MSG_STRONG_FREE_MAGIC_WORD,
+	MSG_STRONG_FREE_SIZE,
+	MSG_STRONG_FREE_NEXT_OFFSET,
+	MSG_REPORT_DIR_ADDED,
+	MSG_REPORT_DIR_DELETED,
+	MSG_REPORT_DIR_UNCHANGED,
+	MSG_REPORT_FILE_ADDED,
+	MSG_REPORT_FILE_DELETED,
+	MSG_REPORT_FILE_UNCHANGED,
+	MSG_REPORT_FILE_TYPE,
+	MSG_REPORT_FILE_CONTENTS,
+	MSG_CRTEATE_DIR,
+	MSG_DELETE_DIR,
+	MSG_WRITE_FILE,
+	MSG_DELETE_FILE,
 	MSG_MAX_MESSAGES
 };
 
+
+/**
+ * Set the verbosity of reporting.
+ *
+ * \param verbose	True if verbose reporting should be enabled.
+ */
+
+void msg_set_verbose(bool verbose);
 
 /**
  * Generate a message to the user, based on a range of standard message tokens

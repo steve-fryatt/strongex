@@ -110,23 +110,28 @@ struct objectdb_object *objectdb_add_disc_file(struct objectdb_object *parent, c
 
 /**
  * Check the status of the objects held in the database.
+ * 
+ * \return		True if successful, false on failure.
  */
 
-void objectdb_check_status(void);
+bool objectdb_check_status(void);
 
 /**
  * Write a report of the object statuses in the database.
  *
  * \param include_all	Should identical objects be included.
+ * \return		True if successful, false on failure.
  */
 
-void objectdb_output_report(bool include_all);
+bool objectdb_output_report(bool include_all);
 
 /**
  * Update the objects in the database.
+ * 
+ * \return		True if successful, false on failure.
  */
 
-void objectdb_output(void);
+bool objectdb_update(void);
 
 /**
  * Get a file path to an object.
