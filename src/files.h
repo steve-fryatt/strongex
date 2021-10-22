@@ -79,6 +79,27 @@ struct files_object_info *files_read_directory_contents(char *path);
 struct files_object_info *files_read_directory_info(char *path);
 
 /**
+ * Make a filename up using its name and filetype, and create a new
+ * buffer for it using malloc(). It is up to the caller to release
+ * this using free() once no longer required.
+ *
+ * \param *name		Pointer to the filename.
+ * \param filetype	The RISC OS filetype.
+ * \return		Pointer to the resulting name buffer.
+ */
+
+char *files_make_filename(char *name, uint32_t filetype);
+
+/**
+ * Set the RISC OS filetype of a file.
+ * \param *name		Pointer to the filename.
+ * \param filetype	The RISC OS filetype.
+ * \return		True if successful; False on failure.
+ */
+
+bool files_set_filetype(char *name, uint32_t filetype);
+
+/**
  * Create a new directory.
  *
  * \param *path		Pointer to the required directory path.
@@ -86,5 +107,34 @@ struct files_object_info *files_read_directory_info(char *path);
  */
 
 bool files_make_directory(char *path);
+
+/**
+ * Delete an empty directory.
+ *
+ * \param *path		Pointer to the required directory path.
+ * \return		True if successful; False on failure.
+ */
+
+bool files_delete_directory(char *path);
+
+/**
+ * Write a file to disc.
+ *
+ * \param *path		Pointer to the required file path.
+ * \param *data		Pointer to the data to be written.
+ * \param length	The length of the data to be written.
+ * \return		True if successful; False on failure.
+ */
+
+bool files_write_file(char *path, char *data, size_t length);
+
+/**
+ * Delete a file
+ *
+ * \param *path		Pointer to the required file path.
+ * \return		True if successful; False on failure.
+ */
+
+bool files_delete_file(char *path);
 
 #endif

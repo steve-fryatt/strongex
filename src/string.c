@@ -29,6 +29,7 @@
 
 #include <ctype.h>
 #include <stddef.h>
+#include <string.h>
 
 /* Local source headers. */
 

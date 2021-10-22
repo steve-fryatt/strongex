@@ -29,12 +29,14 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #ifdef LINUX
 #include <dirent.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #endif
 #ifdef RISCOS
 #include "oslib/os.h"
@@ -231,6 +233,60 @@ static uint32_t files_get_filetype(char *name)
 }
 
 /**
+ * Make a filename up using its name and filetype, and create a new
+ * buffer for it using malloc(). It is up to the caller to release
+ * this using free() once no longer required.
+ *
+ * \param *name		Pointer to the filename.
+ * \param filetype	The RISC OS filetype.
+ * \return		Pointer to the resulting name buffer.
+ */
+
+char *files_make_filename(char *name, uint32_t filetype)
+{
+	size_t length = 0;
+	char *buffer = NULL;
+
+#if LINUX
+	length = strlen(name) + 5;
+#endif
+#if RISCOS
+	length = strlen(name) + 1;
+#endif
+
+	buffer = malloc(length);
+	if (buffer == NULL)
+		return NULL;
+
+#if LINUX
+	snprintf(buffer, length, "%s,%3x", name, filetype);
+#endif
+#if RISCOS
+	snprintf(buffer, length, "%s", name);
+#endif
+	buffer[length - 1] = '\0';
+
+	return buffer;
+}
+
+/**
+ * Set the RISC OS filetype of a file.
+ * \param *path		Pointer to the filename.
+ * \param filetype	The RISC OS filetype.
+ * \return		True if successful; False on failure.
+ */
+
+bool files_set_filetype(char *path, uint32_t filetype)
+{
+#ifdef RISCOS
+	if (xosfile_set_type(path, filetype) != NULL)
+		return false;
+#endif
+
+	return true;
+}
+
+/**
  * Return object info details for a single directory on disc.
  *
  * \param *path		Pointer to the directory path.
@@ -301,6 +357,79 @@ bool files_make_directory(char *path)
 #endif
 #ifdef RISCOS
 	if (xosfile_create_dir(path, 0) != NULL)
+		return false;
+#endif
+
+	return true;
+}
+
+/**
+ * Delete an empty directory.
+ *
+ * \param *path		Pointer to the required directory path.
+ * \return		True if successful; False on failure.
+ */
+
+bool files_delete_directory(char *path)
+{
+#ifdef LINUX
+	if (rmdir(path) != 0)
+		return false;
+#endif
+#ifdef RISCOS
+	if (xosfile_delete(path, NULL, NULL, NULL, NULL) != NULL)
+		return false;
+#endif
+
+	return true;
+}
+
+/**
+ * Write a file to disc.
+ *
+ * \param *path		Pointer to the required file path.
+ * \param *data		Pointer to the data to be written.
+ * \param length	The length of the data to be written.
+ * \return		True if successful; False on failure.
+ */
+
+bool files_write_file(char *path, char *data, size_t length)
+{
+	FILE *file;
+	size_t to_write = length, written;
+
+	file = fopen(path, "w");
+	if (file == NULL)
+		return false;
+
+	while (to_write > 0) {
+		written = fwrite(data, length, sizeof(char), file);
+		
+		if (written == 0)
+			break;
+		to_write -= written;
+	}
+
+	fclose(file);
+
+	return (to_write > 0) ? false : true;
+}
+
+/**
+ * Delete a file
+ *
+ * \param *path		Pointer to the required file path.
+ * \return		True if successful; False on failure.
+ */
+
+bool files_delete_file(char *path)
+{
+#ifdef LINUX
+	if (unlink(path) != 0)
+		return false;
+#endif
+#ifdef RISCOS
+	if (xosfile_delete(path, NULL, NULL, NULL, NULL) != NULL)
 		return false;
 #endif
 

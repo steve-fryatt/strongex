@@ -65,7 +65,6 @@ int main(int argc, char *argv[])
 	char			*source_file = NULL;
 	char			*output_folder = NULL;
 	struct args_option	*options;
-	struct args_data	*option_data;
 
 	/* Default processing options. */
 
