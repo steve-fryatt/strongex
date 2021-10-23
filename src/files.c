@@ -62,6 +62,7 @@
 
 static void files_link_object(struct files_object_info **list, struct files_object_info *object);
 static uint32_t files_get_filetype(char *name);
+static char *files_convert_name_to_riscos(char *name);
 
 /**
  * Read the contents of a directory, returning a linked list of objects.
@@ -123,6 +124,10 @@ struct files_object_info *files_read_directory_contents(char *path)
 		/* Work out the filetype details. */
 
 		next->filetype = (S_ISDIR(stat_buffer.st_mode)) ? OBJECTDB_TYPE_DIRECTORY : files_get_filetype(next->name);
+
+		/* Fix the filename conventions. */
+
+		files_convert_name_to_riscos(next->name);
 
 		/* Store the file details. */
 
@@ -233,6 +238,28 @@ static uint32_t files_get_filetype(char *name)
 }
 
 /**
+ * Convert a filename from native format into RISC OS.
+ *
+ * \param *name		Pointer to the filename to convert.
+ * \return		Pointer to the converted name.
+ */
+
+static char *files_convert_name_to_riscos(char *name)
+{
+#ifdef LINUX
+	char *c = name;
+
+	while (c != NULL && *c != '\0') {
+		if (*c == '.')
+			*c = '/';
+		c++;
+	}
+#endif
+
+	return name;
+}
+
+/**
  * Make a filename up using its name and filetype, and create a new
  * buffer for it using malloc(). It is up to the caller to release
  * this using free() once no longer required.
@@ -247,24 +274,34 @@ char *files_make_filename(char *name, uint32_t filetype)
 	size_t length = 0;
 	char *buffer = NULL;
 
-#if LINUX
-	length = strlen(name) + 5;
+#ifdef RISCOS
+	filetype = FILES_TYPE_OMIT;
 #endif
-#if RISCOS
-	length = strlen(name) + 1;
-#endif
+
+	length = strlen(name) + ((filetype == FILES_TYPE_OMIT) ? 1 : 5);
 
 	buffer = malloc(length);
 	if (buffer == NULL)
 		return NULL;
 
-#if LINUX
-	snprintf(buffer, length, "%s,%3x", name, filetype);
-#endif
-#if RISCOS
-	snprintf(buffer, length, "%s", name);
-#endif
+	if (filetype == FILES_TYPE_OMIT || filetype == OBJECTDB_TYPE_DIRECTORY)
+		snprintf(buffer, length, "%s", name);
+	else
+		snprintf(buffer, length, "%s,%3x", name, filetype);
+
 	buffer[length - 1] = '\0';
+
+#ifdef LINUX
+	{
+		char *c = buffer;
+
+		while (*c != '\0') {
+			if (*c == '/')
+				*c = '.';
+			c++;
+		}
+	}
+#endif
 
 	return buffer;
 }
@@ -348,6 +385,8 @@ struct files_object_info *files_read_directory_info(char *path, bool strict)
 	info->size = 0;
 	info->filetype = OBJECTDB_TYPE_DIRECTORY;
 	info->next = NULL;
+
+	files_convert_name_to_riscos(info->name);
 
 	return info;
 }

@@ -628,8 +628,7 @@ static bool objectdb_update_directory(struct objectdb_object *dir)
 		return false;
 
 	if (dir->status == OBJECTDB_STATUS_ADDED) {
-		if (dir->disc.name == NULL)
-			dir->disc.name = dir->name;
+		dir->disc.name = files_make_filename(dir->stronghelp.name, dir->stronghelp.filetype);
 
 		path = objectdb_get_path(dir, OBJECTDB_PATH_TYPE_DISC, FILES_PATH_SEPARATOR);
 		if (path == NULL) {

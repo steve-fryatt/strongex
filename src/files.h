@@ -40,6 +40,12 @@
 
 #define FILES_TYPE_DEFAULT (0xffd)
 
+/**
+ * Don't include a type when building the filename.
+ */
+
+#define FILES_TYPE_OMIT (0xffffffffu)
+
 #ifdef LINUX
 #define FILES_PATH_SEPARATOR "/"
 #endif
