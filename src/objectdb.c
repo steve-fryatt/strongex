@@ -82,6 +82,18 @@ struct objectdb_object {
 	struct objectdb_object		*next;
 };
 
+/**
+ * Summary report details.
+ */
+
+struct objectdb_report_summary {
+	int	directories_added;
+	int	directories_deleted;
+	int	files_added;
+	int	files_changed;
+	int	files_deleted;
+};
+
 /* Global Variables. */
 
 /**
@@ -96,7 +108,7 @@ static void objectdb_link_object(struct objectdb_object **list, struct objectdb_
 static struct objectdb_object *objectdb_find_object(struct objectdb_object *list, char *name);
 static bool objectdb_check_directory_status(struct objectdb_object *dir);
 static bool objectdb_compare_files(struct objectdb_object *object);
-static bool objectdb_output_directory_report(struct objectdb_object *dir, bool include_all);
+static bool objectdb_output_directory_report(struct objectdb_object *dir, struct objectdb_report_summary *summary, bool include_all);
 static bool objectdb_update_directory(struct objectdb_object *dir);
 static char *objectdb_get_dir_path(struct objectdb_object *dir, size_t *length, enum objectdb_path_type type, char *separator);
 
@@ -451,7 +463,23 @@ static bool objectdb_compare_files(struct objectdb_object *object)
 
 bool objectdb_output_report(bool include_all)
 {
-	return objectdb_output_directory_report(objectdb_root, include_all);
+	struct objectdb_report_summary summary = { 0, 0, 0, 0, 0 };
+
+	if (!objectdb_output_directory_report(objectdb_root, &summary, include_all))
+		return false;
+
+	if (summary.directories_added == 0 && summary.directories_deleted == 0 &&
+			summary.files_added == 0 && summary.files_changed == 0 && summary.files_deleted == 0) {
+		msg_report(MSG_SUMMARY_IDENTICAL);
+	} else {
+		if (summary.directories_added > 0 || summary.directories_deleted > 0)
+			msg_report(MSG_SUMMARY_DIRS, summary.directories_added, summary.directories_deleted);
+
+		if (summary.files_added > 0 || summary.files_changed > 0 || summary.files_deleted > 0)
+			msg_report(MSG_SUMMARY_FILES, summary.files_added, summary.files_changed, summary.files_deleted);
+	}
+
+	return true;
 }
 
 /**
@@ -459,11 +487,12 @@ bool objectdb_output_report(bool include_all)
  * below that.
  *
  * \param *dir		Pointer to the directory on which to report.
+ * \param *summary	Pointer to the report summary data block.
  * \param include_all	Should identical objects be included.
  * \return		True if successful, false on failure.
  */
 
-static bool objectdb_output_directory_report(struct objectdb_object *dir, bool include_all)
+static bool objectdb_output_directory_report(struct objectdb_object *dir, struct objectdb_report_summary *summary, bool include_all)
 {
 	struct objectdb_object *object;
 	char *name;
@@ -476,9 +505,11 @@ static bool objectdb_output_directory_report(struct objectdb_object *dir, bool i
 		switch (dir->status) {
 		case OBJECTDB_STATUS_ADDED:
 			msg_report(MSG_REPORT_DIR_ADDED, name);
+			summary->directories_added++;
 			break;
 		case OBJECTDB_STATUS_DELETED:
 			msg_report(MSG_REPORT_DIR_DELETED, name);
+			summary->directories_deleted++;
 			break;
 		case OBJECTDB_STATUS_IDENTICAL:
 			if (include_all)
@@ -502,16 +533,20 @@ static bool objectdb_output_directory_report(struct objectdb_object *dir, bool i
 			switch (object->status) {
 			case OBJECTDB_STATUS_ADDED:
 				msg_report(MSG_REPORT_FILE_ADDED, name);
+				summary->files_added++;
 				break;
 			case OBJECTDB_STATUS_DELETED:
 				msg_report(MSG_REPORT_FILE_DELETED, name);
+				summary->files_deleted++;
 				break;
 			case OBJECTDB_STATUS_TYPE_CHANGED:
 				msg_report(MSG_REPORT_FILE_TYPE, object->disc.filetype, object->stronghelp.filetype, name);
+				summary->files_changed++;
 				break;
 			case OBJECTDB_STATUS_SIZE_CHANGED:
 			case OBJECTDB_STATUS_CONTENT_CHANGED:
 				msg_report(MSG_REPORT_FILE_CONTENTS, object->disc.size, object->stronghelp.size, name);
+				summary->files_changed++;
 				break;
 			case OBJECTDB_STATUS_IDENTICAL:
 				if (include_all)
@@ -533,7 +568,7 @@ static bool objectdb_output_directory_report(struct objectdb_object *dir, bool i
 
 	object = dir->directories;
 	while (object != NULL) {
-		if (!objectdb_output_directory_report(object, include_all))
+		if (!objectdb_output_directory_report(object, summary, include_all))
 			return false;
 		object = object->next;
 	}

@@ -107,7 +107,10 @@ static struct msg_data msg_messages[] = {
 	{MSG_VERBOSE,	"Creating directory %s"},
 	{MSG_VERBOSE,	"Deleting directory %s"},
 	{MSG_VERBOSE,	"Writing file %s"},
-	{MSG_VERBOSE,	"Deleting file %s"}
+	{MSG_VERBOSE,	"Deleting file %s"},
+	{MSG_INFO,	"The manuals are identical"},
+	{MSG_INFO,	"Directories: %d added, %d removed"},
+	{MSG_INFO,	"Files: %d added, %d removed, %d changed"}
 };
 
 /**
