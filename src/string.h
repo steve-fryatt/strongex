@@ -67,5 +67,15 @@ char *string_copy(char *dest, char *src, size_t len);
 
 void string_append(char *buffer, char *target, size_t length);
 
+/**
+ * Trim all the instances of a character from the right hand end of
+ * a string.
+ *
+ * \param *buffer	Pointer to the buffer in memory.
+ * \param trim		The character to be trimmed.
+ */
+
+void string_trim_right(char *buffer, char trim);
+
 #endif
 

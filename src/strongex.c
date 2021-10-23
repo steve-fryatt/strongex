@@ -40,8 +40,10 @@
 
 #include "args.h"
 #include "disc.h"
+#include "files.h"
 #include "msg.h"
 #include "objectdb.h"
+#include "string.h"
 #include "stronghelp.h"
 
 /* OSLib source headers. */
@@ -165,6 +167,8 @@ static bool strongex_process_file(char *source_file, char *output_folder, bool o
 
 	if (source_file == NULL || output_folder == NULL)
 		return false;
+
+	string_trim_right(output_folder, *FILES_PATH_SEPARATOR);
 
 	/* Open the file handle. */
 

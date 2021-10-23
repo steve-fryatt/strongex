@@ -104,3 +104,26 @@ void string_append(char *buffer, char *source, size_t length)
 
 	*buffer = '\0';
 }
+
+/**
+ * Trim all the instances of a character from the right hand end of
+ * a string.
+ *
+ * \param *buffer	Pointer to the buffer in memory.
+ * \param trim		The character to be trimmed.
+ */
+
+void string_trim_right(char *buffer, char trim)
+{
+	char *p = buffer;
+
+	if (buffer == NULL)
+		return;
+
+	p += strlen(buffer);
+	if (*p != '\0')
+		return;
+
+	while (p > buffer && *(--p) == trim)
+		*p = '\0';
+}
