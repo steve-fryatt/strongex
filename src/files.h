@@ -73,10 +73,11 @@ struct files_object_info *files_read_directory_contents(char *path);
  * Return object info details for a single directory on disc.
  *
  * \param *path		Pointer to the directory path.
+ * \param strict	Should the directory exist.
  * \return		Pointer to the information, or NULL.
  */
 
-struct files_object_info *files_read_directory_info(char *path);
+struct files_object_info *files_read_directory_info(char *path, bool strict);
 
 /**
  * Make a filename up using its name and filetype, and create a new

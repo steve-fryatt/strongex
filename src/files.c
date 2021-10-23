@@ -288,21 +288,31 @@ bool files_set_filetype(char *path, uint32_t filetype)
 
 /**
  * Return object info details for a single directory on disc.
+ * 
+ * If strict is applied, the directory must exist on disc for an
+ * object to be returned. Othertwise, so long as there is not a
+ * non-directory object in the location, a phantom object will
+ * be returned.
  *
  * \param *path		Pointer to the directory path.
+ * \param strict	Should the directory exist.
  * \return		Pointer to the information, or NULL.
  */
 
-struct files_object_info *files_read_directory_info(char *path)
+struct files_object_info *files_read_directory_info(char *path, bool strict)
 {
 	struct files_object_info *info;
 	size_t length;
 
 #ifdef LINUX
+	int result;
 	struct stat stat_buffer;
 
-	if (stat(path, &stat_buffer) == 0 && !S_ISDIR(stat_buffer.st_mode)) {
-		msg_report(MSG_NOT_DIR, path);
+	result = stat(path, &stat_buffer);
+
+	if (((result != 0) && strict) || ((result == 0) && !strict && !S_ISDIR(stat_buffer.st_mode))) {
+		if ((result == 0) && !S_ISDIR(stat_buffer.st_mode))
+			msg_report(MSG_NOT_DIR, path);
 		return NULL;
 	}
 #endif
@@ -314,11 +324,11 @@ struct files_object_info *files_read_directory_info(char *path)
 		return NULL;
 	}
 
-	if (type != fileswitch_IS_DIR && type != fileswitch_NOT_FOUND) {
-		msg_report(MSG_NOT_DIR, path);
+	if (type != fileswitch_IS_DIR && (type != fileswitch_NOT_FOUND || strict)) {
+		if (type != fileswitch_NOT_FOUND)
+			msg_report(MSG_NOT_DIR, path);
 		return NULL;
 	}
-
 #endif
 
 	length = sizeof(struct files_object_info) + strlen(path) + 1;

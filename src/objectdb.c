@@ -549,6 +549,31 @@ static bool objectdb_output_directory_report(struct objectdb_object *dir, bool i
 
 bool objectdb_update(void)
 {
+	char *path = NULL;
+	struct files_object_info *root;
+
+	/* Make sure that the root directory exists on disc first. */
+
+	path = objectdb_get_path(objectdb_root, OBJECTDB_PATH_TYPE_DISC, FILES_PATH_SEPARATOR);
+	if (path == NULL) {
+		msg_report(MSG_NO_MEMORY);
+		return false;
+	}
+
+	root = files_read_directory_info(path, true);
+
+	if (root == NULL) {
+		msg_report(MSG_CREATE_DIR, path);
+		if (!files_make_directory(path))
+			return false;
+	} else {
+		free(root);
+	}
+
+	free(path);
+
+	/* Update all of the files and folders. */
+
 	return objectdb_update_directory(objectdb_root);
 }
 
@@ -577,7 +602,7 @@ static bool objectdb_update_directory(struct objectdb_object *dir)
 			return false;
 		}
 
-		msg_report(MSG_CRTEATE_DIR, path);
+		msg_report(MSG_CREATE_DIR, path);
 		if (!files_make_directory(path))
 			return false;
 

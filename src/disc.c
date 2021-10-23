@@ -57,7 +57,7 @@ bool disc_initialise_folder(char *path)
 
 	/* Validate the directory entries. */
 
-	root = files_read_directory_info(path);
+	root = files_read_directory_info(path, false);
 	if (root == NULL)
 		return false;
 
