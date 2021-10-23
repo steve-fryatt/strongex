@@ -198,7 +198,16 @@ static bool stronghelp_process_object(struct stronghelp_file_dir_entry *entry, s
 
 	/* Create an Object DB entry for the directory. */
 
-	if (data->data == STRONGHELP_DATA_WORD) {
+	if (entry->object_offset == 0 && data->data == STRONGHELP_FILE_WORD) {
+		/* A special case, as some empty files have an offset of zero and no data.
+		 * We point the data pointer to the start of the file in memory, as it won't
+		 * be read from due to its zero length.
+		 */
+		filetype = (entry->load_address >> 8) & 0xfff;
+		object = objectdb_add_stronghelp_file(parent, entry->filename, 0, filetype, (char *) data);
+		if (object == NULL)
+			return false;
+	} else if (data->data == STRONGHELP_DATA_WORD) {
 		filetype = (entry->load_address >> 8) & 0xfff;
 		object = objectdb_add_stronghelp_file(parent, entry->filename, entry->size - 8, filetype, (char *) (data + 1));
 		if (object == NULL)
