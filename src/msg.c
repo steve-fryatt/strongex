@@ -110,7 +110,7 @@ static struct msg_data msg_messages[] = {
 	{MSG_VERBOSE,	"Deleting file %s"},
 	{MSG_INFO,	"The manuals are identical"},
 	{MSG_INFO,	"Directories: %d added, %d removed"},
-	{MSG_INFO,	"Files: %d added, %d removed, %d changed"}
+	{MSG_INFO,	"Files: %d added, %d changed, %d removed"}
 };
 
 /**
