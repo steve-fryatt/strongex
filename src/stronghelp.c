@@ -48,6 +48,15 @@
 #define STRONGHELP_DATA_WORD (0x41544144)
 #define STRONGHELP_FREE_WORD (0x45455246)
 
+/* Object attribute flags. */
+
+#define STRONGHELP_ATTRIBUTE_OWNER_READ (0x0001)
+#define STRONGHELP_ATTRIBUTE_OWNER_WRITE (0x0002)
+#define STRONGHELP_ATTRIBUTE_LOCKED (0x0004)
+#define STRONGHELP_ATTRIBUTE_PUBLIC_READ (0x0008)
+#define STRONGHELP_ATTRIBUTE_PUBLIC_WRITE (0x0010)
+#define STRONGHELP_ATTRIBUTE_DIRECTORY (0x0100)
+
 /**
  * A StrongHelp file root block.
  */
@@ -204,11 +213,29 @@ static bool stronghelp_process_object(struct stronghelp_file_dir_entry *entry, s
 		 * be read from due to its zero length.
 		 */
 		filetype = (entry->load_address >> 8) & 0xfff;
+
+		if (entry->size == 0)
+			msg_report(MSG_STRONG_GOOD_EMPTY_FILE, entry->filename, filetype);
+		else
+			msg_report(MSG_STRONG_BAD_EMPTY_FILE, entry->filename, filetype, entry->size);
+
+		if (entry->flags & STRONGHELP_ATTRIBUTE_DIRECTORY)
+			msg_report(MSG_STRONG_BAD_FILE_ATTRIBUTE, entry->filename, entry->flags);
+
 		object = objectdb_add_stronghelp_file(parent, entry->filename, 0, filetype, (char *) data);
 		if (object == NULL)
 			return false;
 	} else if (data->data == STRONGHELP_DATA_WORD) {
 		filetype = (entry->load_address >> 8) & 0xfff;
+
+		if (entry->size == data->size)
+			msg_report(MSG_STRONG_GOOD_FILE, entry->filename, filetype, entry->size);
+		else
+			msg_report(MSG_STRONG_BAD_FILE, entry->filename, filetype, entry->size, data->size);
+
+		if (entry->flags & STRONGHELP_ATTRIBUTE_DIRECTORY)
+			msg_report(MSG_STRONG_BAD_FILE_ATTRIBUTE, entry->filename, entry->flags);
+
 		object = objectdb_add_stronghelp_file(parent, entry->filename, entry->size - 8, filetype, (char *) (data + 1));
 		if (object == NULL)
 			return false;
@@ -218,6 +245,11 @@ static bool stronghelp_process_object(struct stronghelp_file_dir_entry *entry, s
 			return false;
 
 		dir = (struct stronghelp_file_dir_block *) data;
+
+		msg_report(MSG_STRONG_DIRECTORY, entry->filename, entry->size, dir->size, dir->used);
+
+		if (!(entry->flags & STRONGHELP_ATTRIBUTE_DIRECTORY))
+			msg_report(MSG_STRONG_BAD_DIR_ATTRIBUTE, entry->filename, entry->flags);
 
 		if (!stronghelp_process_directory_entries(entry->object_offset + sizeof(struct stronghelp_file_dir_block),
 				dir->used - sizeof(struct stronghelp_file_dir_block), object))
