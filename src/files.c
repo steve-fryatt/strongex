@@ -61,7 +61,9 @@
 /* Static Function Prototypes. */
 
 static void files_link_object(struct files_object_info **list, struct files_object_info *object);
+#ifdef LINUX
 static uint32_t files_get_filetype(char *name);
+#endif
 static char *files_convert_name_to_riscos(char *name);
 
 /**
@@ -209,6 +211,7 @@ static void files_link_object(struct files_object_info **list, struct files_obje
  * \return		The filetype identified from the name.
  */
 
+#ifdef LINUX
 static uint32_t files_get_filetype(char *name)
 {
 	size_t length = 0;
@@ -236,6 +239,7 @@ static uint32_t files_get_filetype(char *name)
 
 	return (uint32_t) value;
 }
+#endif
 
 /**
  * Convert a filename from native format into RISC OS.
@@ -426,7 +430,7 @@ bool files_delete_directory(char *path)
 		return false;
 #endif
 #ifdef RISCOS
-	if (xosfile_delete(path, NULL, NULL, NULL, NULL) != NULL)
+	if (xosfile_delete(path, NULL, NULL, NULL, NULL, NULL) != NULL)
 		return false;
 #endif
 
@@ -479,7 +483,7 @@ bool files_delete_file(char *path)
 		return false;
 #endif
 #ifdef RISCOS
-	if (xosfile_delete(path, NULL, NULL, NULL, NULL) != NULL)
+	if (xosfile_delete(path, NULL, NULL, NULL, NULL, NULL) != NULL)
 		return false;
 #endif
 
