@@ -26,7 +26,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 See the Licence for the specific language governing permissions and limitations under the Licence.
 
-The source for <cite>Strong Extract</cite> can be found alongside this binary download, at <link ref="#url http://www.stevefryatt.org.uk/software">http://www.stevefryatt.org.uk/software</link>
+The source for <cite>Strong Extract</cite> can be found on GitHub, at <link ref="#url https://github.com/steve-fryatt/strongex">https://github.com/steve-fryatt/strongex</link>
 
 </chapter>
 
@@ -35,7 +35,9 @@ The source for <cite>Strong Extract</cite> can be found alongside this binary do
 
 <chapter title="Introduction" file="Introduction">
 
-<cite>Strong Extract</cite> is a tool for extracting the files from StrongHelp manuals at the command line. It is written in C, and can be compiled to run on platforms other than RISC&nbsp;OS.
+<cite>Strong Extract</cite> is a command line tool for performing simple validation on StrongHelp manuals, and extracting the files from them. It is written in C, and can be compiled to run on platforms other than RISC&nbsp;OS.
+
+It can provide details of the differences between the contents of a manual file and a corresponding collection of files on disc. There is also support for cross-platform handling of RISC&nbsp;OS filetypes.
 
 </chapter>
 
@@ -47,15 +49,23 @@ The source for <cite>Strong Extract</cite> can be found alongside this binary do
 
 <command>strongex &lt;source&nbsp;manual&gt; [-out] &lt;output&nbsp;folder&gt; [&lt;options&gt;]</command>
 
-In this form, <cite>Strong Extract</cite> will compare the files contained in the source manual with the files in the output folder. Any changes are reported: files which would need to be added to the output folder, deleted from it, or which have been changed in the manual. If the specified output folder does not exist, then it will report all files from the manual as being added.
+If given only a source manual and an output folder, <cite>Strong Extract</cite> will compare the files contained in the source manual with the files in the output folder. Any changes which would be required to bring the output folder into step with the source manual are reported: files which would need to be added to the folder, deleted from it, or which are different in the manual. If the specified output folder does not exist, then <cite>Strong Extract</cite> will report that all of files from the manual will need to be added.
 
-A file is considered to have changed if its filetype or contents have changed. Since some tools generate manuals with all their files dated 1 January 1900, dates are not compared.
+A file is considered to have changed if its filetype or contents are different. Since some tools generate manuals with all their files dated 1 January 1900, dates are not compared. Files with different names are treated as being completely different: there is no attempt to detect files which have been renamed but are otherwise unchanged.
 
-As <cite>Strong Extract</cite> reads the manual file, simple integrity checks are carried out to verify that the contents make sense. This is not a foolproof guarantee that the manual is correctly formed, however.
+As <cite>Strong Extract</cite> reads the manual file, simple integrity checks are carried out to verify that the contents make sense. This is not a foolproof guarantee that the manual is correctly formed, however. Any potential problems with the file structure are reported, including:
 
-If the <param>-update</param> parameter switch is included, <cite>Strong Extract</cite> will update the output folder (and create it first, if necessary) so that it matches the contents of the manual.
+<list type="bullet">
+<li>File entries which point to a <code>DIR$</code> block.
+<li>Directory entries which point to a <code>DATA</code> block.
+<li>Files and directories whose size does not match the block pointed to.
+<li>Files with no block whose size is not zero.
+<li>Blocks with unrecognized guard words.
+</list>
 
-It is possible to add the <param>-verbose</param> parameter switch, in which case <cite>Strong Extract</cite> will generate more detailed information about what it is doing.
+If the <param>-verbose</param> parameter switch is used, <cite>Strong Extract</cite> will output more detailed information about the objects that it is reading.
+
+By default, <cite>Strong Extract</cite> will simply compare the source manual and output folder contents, but if the <param>-update</param> parameter switch is used it will proceed to update the contents of the output folder from the source manual. The folder will be created if it does not already exist, and files will then be added, updated and removed until its contents match those of the source manual.
 
 For more information about the options available, use <command>strongex -help</command>.
 
@@ -63,9 +73,11 @@ For more information about the options available, use <command>strongex -help</c
 
 <cite>Strong Extract</cite> can be built for use on both RISC&nbsp;OS and Linux, and the main difference between the two versions is in their handling of filenames and filetypes.
 
-On RISC&nbsp;OS, the contents of the manual is extracted on to disc in the same form as they were stored in the manual. The main differences will stem from the fact that datestamps and file attributes are not preserved.
+On RISC&nbsp;OS, the contents of the manual is extracted on to disc in the same form as it was stored in the manual. The main differences will stem from the fact that datestamps and file attributes are not preserved.
 
-On Linux, filetypes are preserved by appending a standard <code>,xxx</code> suffix to the filename, where &quot;xxx&quot; is the filetype in hexadecimal. These suffixes are assumed to be present in any pre-existing output folder, and are used to obtain the filetypes of the files already there. In addition, any <code>/</code> characters in filenames are mapped to <code>.</code>. All other characters in names are retained, and care should be taken to ensure that they are valid on the target filing system.
+On Linux, filetypes are preserved by appending a standard <code>,xxx</code> suffix to the filename, where &quot;xxx&quot; is the filetype in hexadecimal. These suffixes are assumed to be present in any pre-existing output folder, and are used to obtain the filetypes of the files already there. Files whose names have no extension will be assumed to have a type of Data (&amp;FFD).
+
+In addition, any <code>/</code> characters in the source manual filenames are mapped to <code>.</code> in the output folder. All other characters in names are retained, and care should be taken to ensure that they are valid on the target filing system.
 
 </chapter>
 
@@ -92,11 +104,11 @@ Initial release for testing and feedback.
 Updates and Contacting Me
 -------------------------
 
-  If you have any comments about Tokenize, or would like to report any bugs
-  that you find, you can email me at the address below.
+  If you have any comments about Strong Extract, or would like to report any
+  bugs that you find, you can email me at the address below.
 
-  Updates to Tokenize and more software for RISC OS computers can be found
-  on my website at http://www.stevefryatt.org.uk/software/
+  Updates to Strong Extract and more programs for RISC OS computers can be
+  found on my website at http://www.stevefryatt.org.uk/risc-os/
 
   Stephen Fryatt
   email: info@stevefryatt.org.uk
